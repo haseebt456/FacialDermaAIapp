@@ -1,6 +1,11 @@
 import React from "react";
 import AppNavigator from "./src/navigation/AppNavigator";
+import { NotificationsProvider } from "./src/contexts/NotificationsContext";
 
 export default function App() {
-  return <AppNavigator />;
+  return (
+    <NotificationsProvider>
+      <AppNavigator />
+    </NotificationsProvider>
+  );
 }
