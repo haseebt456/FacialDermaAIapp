@@ -1,0 +1,327 @@
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
+  Alert,
+  TouchableOpacity,
+} from "react-native";
+import { predictionService } from "../services/predictionService";
+import Button from "../components/Button";
+import Card from "../components/Card";
+import Loading from "../components/Loading";
+import { colors, spacing, typography, shadows, borderRadius } from "../styles/theme";
+
+// Note: react-native-image-picker will need to be installed
+// For now, showing UI structure - image picker functionality requires the package
+
+export default function PredictionScreen({ navigation }: any) {
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [prediction, setPrediction] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  const pickImage = () => {
+    Alert.alert(
+      "Select Image",
+      "Choose an option",
+      [
+        {
+          text: "Camera",
+          onPress: () => {
+            // Placeholder for camera functionality
+            Alert.alert("Camera", "Please install react-native-image-picker to enable camera");
+          },
+        },
+        {
+          text: "Gallery",
+          onPress: () => {
+            // Placeholder for gallery functionality
+            Alert.alert("Gallery", "Please install react-native-image-picker to enable gallery");
+          },
+        },
+        { text: "Cancel", style: "cancel" },
+      ]
+    );
+  };
+
+  const analyzeSkin = async () => {
+    if (!selectedImage) {
+      Alert.alert("Error", "Please select an image first");
+      return;
+    }
+
+    setLoading(true);
+    const result = await predictionService.uploadImage(selectedImage);
+    setLoading(false);
+
+    if (result.success && result.data) {
+      setPrediction(result.data);
+      Alert.alert(
+        "Analysis Complete",
+        `Detected: ${result.data.predicted_label}\nConfidence: ${(result.data.confidence_score * 100).toFixed(1)}%`
+      );
+    } else {
+      if (result.error?.includes("blury")) {
+        Alert.alert("Image Quality Issue", "Please use a clearer, sharper image");
+      } else if (result.error?.includes("No face detected")) {
+        Alert.alert("No Face Detected", "Please ensure your face is clearly visible");
+      } else {
+        Alert.alert("Analysis Failed", result.error);
+      }
+    }
+  };
+
+  const getConditionColor = (label: string) => {
+    const colorMap: any = {
+      Acne: colors.acne,
+      Melanoma: colors.melanoma,
+      Normal: colors.normal,
+      Perioral_Dermatitis: colors.perioral,
+      Rosacea: colors.rosacea,
+      Warts: colors.warts,
+    };
+    return colorMap[label] || colors.primary;
+  };
+
+  return (
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Text style={styles.backText}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>Skin Analysis</Text>
+        <View style={styles.spacer} />
+      </View>
+
+      <Card style={styles.uploadCard}>
+        {!selectedImage ? (
+          <TouchableOpacity style={styles.uploadArea} onPress={pickImage}>
+            <Text style={styles.uploadIcon}>📷</Text>
+            <Text style={styles.uploadText}>Tap to select or capture image</Text>
+            <Text style={styles.uploadSubtext}>
+              Make sure the face is clearly visible and well-lit
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <View>
+            <Image source={{ uri: selectedImage }} style={styles.previewImage} />
+            <Button
+              title="Select Different Image"
+              onPress={pickImage}
+              variant="outline"
+              size="small"
+              style={styles.changeButton}
+            />
+          </View>
+        )}
+      </Card>
+
+      {selectedImage && !prediction && (
+        <Button
+          title="Analyze Skin Condition"
+          onPress={analyzeSkin}
+          loading={loading}
+          style={styles.analyzeButton}
+        />
+      )}
+
+      {loading && (
+        <Card style={styles.loadingCard}>
+          <Loading message="Analyzing image..." />
+        </Card>
+      )}
+
+      {prediction && (
+        <Card style={styles.resultCard}>
+          <View
+            style={[
+              styles.resultHeader,
+              { backgroundColor: getConditionColor(prediction.predicted_label) },
+            ]}
+          >
+            <Text style={styles.resultLabel}>
+              {prediction.predicted_label.replace(/_/g, " ")}
+            </Text>
+          </View>
+          <View style={styles.resultBody}>
+            <View style={styles.confidenceRow}>
+              <Text style={styles.confidenceLabel}>Confidence Score:</Text>
+              <Text style={styles.confidenceValue}>
+                {(prediction.confidence_score * 100).toFixed(1)}%
+              </Text>
+            </View>
+            <View style={styles.progressBar}>
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${prediction.confidence_score * 100}%` },
+                ]}
+              />
+            </View>
+            <Text style={styles.disclaimer}>
+              ⚠️ This is an AI-based prediction. Please consult a dermatologist for proper diagnosis
+              and treatment.
+            </Text>
+            <Button
+              title="Analyze Another Image"
+              onPress={() => {
+                setSelectedImage(null);
+                setPrediction(null);
+              }}
+              variant="outline"
+              style={styles.resetButton}
+            />
+          </View>
+        </Card>
+      )}
+
+      <Card style={styles.infoCard}>
+        <Text style={styles.infoTitle}>Tips for Best Results</Text>
+        <Text style={styles.infoItem}>• Ensure good lighting</Text>
+        <Text style={styles.infoItem}>• Face should be clearly visible</Text>
+        <Text style={styles.infoItem}>• Avoid blurry images</Text>
+        <Text style={styles.infoItem}>• Remove glasses if possible</Text>
+      </Card>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.backgroundGray,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: spacing.lg,
+    backgroundColor: colors.white,
+    ...shadows.small,
+  },
+  backButton: {
+    padding: spacing.sm,
+  },
+  backText: {
+    ...typography.body,
+    color: colors.primary,
+    fontWeight: "600",
+  },
+  title: {
+    ...typography.h2,
+    color: colors.text,
+  },
+  spacer: {
+    width: 60,
+  },
+  uploadCard: {
+    margin: spacing.lg,
+    padding: 0,
+    overflow: "hidden",
+  },
+  uploadArea: {
+    padding: spacing.xxl,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 300,
+    backgroundColor: colors.backgroundGray,
+  },
+  uploadIcon: {
+    fontSize: 64,
+    marginBottom: spacing.md,
+  },
+  uploadText: {
+    ...typography.h3,
+    color: colors.text,
+    marginBottom: spacing.xs,
+    textAlign: "center",
+  },
+  uploadSubtext: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    textAlign: "center",
+  },
+  previewImage: {
+    width: "100%",
+    height: 300,
+    resizeMode: "cover",
+  },
+  changeButton: {
+    margin: spacing.md,
+  },
+  analyzeButton: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  loadingCard: {
+    margin: spacing.lg,
+  },
+  resultCard: {
+    margin: spacing.lg,
+    padding: 0,
+    overflow: "hidden",
+  },
+  resultHeader: {
+    padding: spacing.lg,
+    alignItems: "center",
+  },
+  resultLabel: {
+    ...typography.h1,
+    color: colors.white,
+    textAlign: "center",
+  },
+  resultBody: {
+    padding: spacing.lg,
+  },
+  confidenceRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.sm,
+  },
+  confidenceLabel: {
+    ...typography.body,
+    color: colors.text,
+    fontWeight: "600",
+  },
+  confidenceValue: {
+    ...typography.h2,
+    color: colors.primary,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: colors.borderLight,
+    borderRadius: borderRadius.full,
+    overflow: "hidden",
+    marginBottom: spacing.lg,
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: colors.primary,
+  },
+  disclaimer: {
+    ...typography.caption,
+    color: colors.warning,
+    marginBottom: spacing.lg,
+    fontWeight: "600",
+  },
+  resetButton: {
+    marginTop: spacing.sm,
+  },
+  infoCard: {
+    margin: spacing.lg,
+    marginTop: 0,
+  },
+  infoTitle: {
+    ...typography.h3,
+    color: colors.text,
+    marginBottom: spacing.md,
+  },
+  infoItem: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+});

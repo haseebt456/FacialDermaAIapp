@@ -1,73 +1,169 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet,Alert } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Alert,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableOpacity,
+} from "react-native";
+import { authService } from "../../services/authService";
+import Button from "../../components/Button";
+import Input from "../../components/Input";
+import { colors, spacing, typography } from "../../styles/theme";
 
 export default function LoginScreen({ navigation }: any) {
-  const [email, setEmail] = useState("");
+  const [emailOrUsername, setEmailOrUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<any>({});
 
-  const handleLogin = () => {
-    if (!email || !password) {
-      Alert.alert("Please enter both email and password");
-      return;
+  const validate = () => {
+    const newErrors: any = {};
+    
+    if (!emailOrUsername.trim()) {
+      newErrors.emailOrUsername = "Email or username is required";
     }
+    
+    if (!password) {
+      newErrors.password = "Password is required";
+    } else if (password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-    // Right now we just navigate — no backend yet
-    navigation.navigate("Home");
+  const handleLogin = async () => {
+    if (!validate()) return;
+
+    setLoading(true);
+    const result = await authService.login({
+      emailOrUsername: emailOrUsername.trim(),
+      password,
+    });
+    setLoading(false);
+
+    if (result.success) {
+      // Wait a bit for AsyncStorage to update, then the AppNavigator will handle the switch
+      setTimeout(() => {
+        // The AppNavigator will automatically switch to Main stack when it detects the token
+      }, 100);
+    } else {
+      Alert.alert("Login Failed", result.error);
+    }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>FacialDerma AI</Text>
-      <Text style={styles.subtitle}>Login to continue</Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.header}>
+          <Text style={styles.logo}>🔬</Text>
+          <Text style={styles.title}>FacialDerma AI</Text>
+          <Text style={styles.subtitle}>Welcome back! Please login to continue</Text>
+        </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#888"
-        value={email}
-        onChangeText={setEmail}
-      />
+        <View style={styles.form}>
+          <Input
+            label="Email or Username"
+            placeholder="Enter your email or username"
+            value={emailOrUsername}
+            onChangeText={(text) => {
+              setEmailOrUsername(text);
+              setErrors({ ...errors, emailOrUsername: "" });
+            }}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            error={errors.emailOrUsername}
+          />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor="#888"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+          <Input
+            label="Password"
+            placeholder="Enter your password"
+            value={password}
+            onChangeText={(text) => {
+              setPassword(text);
+              setErrors({ ...errors, password: "" });
+            }}
+            secureTextEntry
+            error={errors.password}
+          />
 
-      <TouchableOpacity style={styles.btn} onPress={handleLogin}>
-        <Text style={styles.btnText}>Login</Text>
-      </TouchableOpacity>
-    </View>
+          <Button
+            title="Login"
+            onPress={handleLogin}
+            loading={loading}
+            style={styles.loginButton}
+          />
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Don't have an account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
+              <Text style={styles.link}>Sign Up</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    padding: spacing.lg,
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: spacing.xl,
+  },
+  logo: {
+    fontSize: 64,
+    marginBottom: spacing.md,
+  },
+  title: {
+    ...typography.h1,
+    color: colors.primary,
+    marginBottom: spacing.xs,
+  },
+  subtitle: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: "center",
+  },
+  form: {
+    width: "100%",
+  },
+  loginButton: {
+    marginTop: spacing.md,
+  },
+  footer: {
+    flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
-    paddingHorizontal: 20,
+    marginTop: spacing.lg,
   },
-  title: { fontSize: 28, fontWeight: "bold", marginBottom: 10, color: "#222" },
-  subtitle: { fontSize: 16, color: "#666", marginBottom: 20 },
-  input: {
-    width: "100%",
-    height: 50,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 15,
+  footerText: {
+    ...typography.body,
+    color: colors.textSecondary,
   },
-  btn: {
-    backgroundColor: "#2A6EF1",
-    paddingVertical: 14,
-    paddingHorizontal: 50,
-    borderRadius: 8,
+  link: {
+    ...typography.body,
+    color: colors.primary,
+    fontWeight: "600",
   },
-  btnText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
 });
