@@ -7,20 +7,91 @@ import {
   Image,
   Alert,
   TouchableOpacity,
+  PermissionsAndroid,
+  Platform,
 } from "react-native";
+import { launchCamera, launchImageLibrary } from "react-native-image-picker";
 import { predictionService } from "../services/predictionService";
 import Button from "../components/Button";
 import Card from "../components/Card";
 import Loading from "../components/Loading";
 import { colors, spacing, typography, shadows, borderRadius } from "../styles/theme";
 
-// Note: react-native-image-picker will need to be installed
-// For now, showing UI structure - image picker functionality requires the package
-
 export default function PredictionScreen({ navigation }: any) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [prediction, setPrediction] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+
+  const requestCameraPermission = async () => {
+    if (Platform.OS === "android") {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.CAMERA,
+          {
+            title: "Camera Permission",
+            message: "App needs camera permission to take photos",
+            buttonNeutral: "Ask Me Later",
+            buttonNegative: "Cancel",
+            buttonPositive: "OK",
+          }
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch (err) {
+        console.warn(err);
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const openCamera = async () => {
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) {
+      Alert.alert("Permission Denied", "Camera permission is required to take photos");
+      return;
+    }
+
+    const options = {
+      mediaType: "photo" as const,
+      quality: 1 as const,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      saveToPhotos: false,
+    };
+
+    launchCamera(options, (response) => {
+      if (response.didCancel) {
+        console.log("User cancelled camera");
+      } else if (response.errorCode) {
+        Alert.alert("Error", response.errorMessage || "Failed to open camera");
+      } else if (response.assets && response.assets[0]) {
+        const asset = response.assets[0];
+        setSelectedImage(asset.uri || null);
+        setPrediction(null);
+      }
+    });
+  };
+
+  const openGallery = () => {
+    const options = {
+      mediaType: "photo" as const,
+      quality: 1 as const,
+      maxWidth: 1024,
+      maxHeight: 1024,
+    };
+
+    launchImageLibrary(options, (response) => {
+      if (response.didCancel) {
+        console.log("User cancelled image picker");
+      } else if (response.errorCode) {
+        Alert.alert("Error", response.errorMessage || "Failed to open gallery");
+      } else if (response.assets && response.assets[0]) {
+        const asset = response.assets[0];
+        setSelectedImage(asset.uri || null);
+        setPrediction(null);
+      }
+    });
+  };
 
   const pickImage = () => {
     Alert.alert(
@@ -29,17 +100,11 @@ export default function PredictionScreen({ navigation }: any) {
       [
         {
           text: "Camera",
-          onPress: () => {
-            // Placeholder for camera functionality
-            Alert.alert("Camera", "Please install react-native-image-picker to enable camera");
-          },
+          onPress: openCamera,
         },
         {
           text: "Gallery",
-          onPress: () => {
-            // Placeholder for gallery functionality
-            Alert.alert("Gallery", "Please install react-native-image-picker to enable gallery");
-          },
+          onPress: openGallery,
         },
         { text: "Cancel", style: "cancel" },
       ]
