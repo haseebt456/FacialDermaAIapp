@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, RefreshControl } from 'react-native';
 import Card from '../../components/Card';
 import { colors, spacing, typography, shadows } from '../../styles/theme';
 import { notificationService, NotificationItem } from '../../services/notificationService';
@@ -8,17 +8,27 @@ import { useNotifications } from '../../contexts/NotificationsContext';
 export default function NotificationsScreen({ navigation }: any) {
   const { refresh } = useNotifications();
   const [items, setItems] = useState<NotificationItem[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   const load = async () => {
     const res = await notificationService.listNotifications(false, 50, 0);
     if (res.success) setItems(res.data || []);
+    await refresh();
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
   };
 
   useEffect(() => {
+    load();
     const unsubscribe = navigation.addListener('focus', () => {
       load();
     });
     return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigation]);
 
   const openNotification = async (item: NotificationItem) => {
@@ -63,6 +73,9 @@ export default function NotificationsScreen({ navigation }: any) {
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={{ padding: spacing.lg }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       />
     </View>
   );

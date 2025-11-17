@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { notificationService } from '../services/notificationService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface NotificationsContextValue {
   unreadCount: number;
@@ -10,9 +11,13 @@ const NotificationsContext = createContext<NotificationsContextValue | undefined
 
 export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [unreadCount, setUnreadCount] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refresh = async () => {
+    const token = await AsyncStorage.getItem('authToken');
+    if (!token) {
+      setUnreadCount(0);
+      return;
+    }
     const res = await notificationService.listNotifications(true, 50, 0);
     if (res.success && res.data) {
       setUnreadCount(res.data.length);
@@ -21,14 +26,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     refresh();
-    intervalRef.current = setInterval(() => {
-      refresh();
-    }, 30000);
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
+  }, [])
 
   return (
     <NotificationsContext.Provider value={{ unreadCount, refresh }}>
