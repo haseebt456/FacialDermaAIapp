@@ -128,13 +128,17 @@ export default function PredictionScreen({ navigation }: any) {
         "Analysis Complete",
         `Detected: ${result.data.predicted_label}\nConfidence: ${(result.data.confidence_score * 100).toFixed(1)}%`
       );
-      // Try to resolve prediction id by matching image url with latest history item (non-blocking)
-      predictionService.getPredictions().then((list) => {
-        if (list.success && list.data && result.data.image_url) {
-          const match = list.data.find((p: any) => p.imageUrl === result.data.image_url);
-          if (match) setCreatedPredictionId(match._id);
+      // Wait a moment for backend to save, then fetch to get the prediction ID
+      setTimeout(async () => {
+        const list = await predictionService.getPredictions();
+        if (list.success && list.data && list.data.length > 0) {
+          // Get the most recent prediction (sorted by date)
+          const sorted = list.data.sort((a: any, b: any) => 
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          setCreatedPredictionId(sorted[0]._id);
         }
-      }).catch(() => {});
+      }, 1500);
     } else {
       const errorLower = result.error?.toLowerCase() || '';
       if (errorLower.includes("blur")) {

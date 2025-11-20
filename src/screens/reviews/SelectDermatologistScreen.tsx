@@ -16,9 +16,12 @@ export default function SelectDermatologistScreen({ route, navigation }: any) {
     const res = await reviewService.listDermatologists(q, 20, 0);
     setLoading(false);
     if (res.success) {
-      setData(res.data);
+      // Backend may return array directly or in a wrapper
+      const derms = Array.isArray(res.data) ? res.data : (res.data?.dermatologists || []);
+      setData(derms);
     } else {
       Alert.alert('Could Not Load Dermatologists', res.error || 'Please try again later.');
+      setData([]);
     }
   };
 
@@ -87,6 +90,17 @@ export default function SelectDermatologistScreen({ route, navigation }: any) {
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={{ padding: spacing.lg }}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>👨‍⚕️</Text>
+            <Text style={styles.emptyText}>
+              {loading ? 'Loading dermatologists...' : 'No dermatologists found'}
+            </Text>
+            {!loading && q && (
+              <Text style={styles.emptyHint}>Try searching with a different name or email</Text>
+            )}
+          </View>
+        }
       />
     </View>
   );
@@ -120,4 +134,8 @@ const styles = StyleSheet.create({
   flex1: { flex: 1 },
   name: { ...typography.body, color: colors.text, fontWeight: '600' },
   email: { ...typography.caption, color: colors.textSecondary },
+  emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xxl },
+  emptyIcon: { fontSize: 64, marginBottom: spacing.md },
+  emptyText: { ...typography.body, color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.xs },
+  emptyHint: { ...typography.bodySmall, color: colors.textLight, textAlign: 'center' },
 });
