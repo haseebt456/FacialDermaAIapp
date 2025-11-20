@@ -8,11 +8,19 @@ export default function MyReviewRequestsScreen({ navigation }: any) {
   const [status, setStatus] = useState<'pending' | 'reviewed'>('pending');
   const [items, setItems] = useState<ReviewRequest[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
+    setLoading(true);
+    setError(null);
     const res = await reviewService.listReviewRequests(status, 50, 0);
+    setLoading(false);
     if (res.success) {
-      setItems(res.data);
+      setItems(res.data || []);
+    } else {
+      setError(res.error || 'Failed to load requests');
+      setItems([]);
     }
   };
 
@@ -72,6 +80,32 @@ export default function MyReviewRequestsScreen({ navigation }: any) {
         renderItem={renderItem}
         contentContainerStyle={{ padding: spacing.lg }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            {loading ? (
+              <Text style={styles.emptyText}>Loading review requests...</Text>
+            ) : error ? (
+              <>
+                <Text style={styles.emptyIcon}>⚠️</Text>
+                <Text style={styles.emptyTitle}>Could Not Load Requests</Text>
+                <Text style={styles.emptyText}>{error}</Text>
+                <TouchableOpacity style={styles.retryButton} onPress={load}>
+                  <Text style={styles.retryText}>Try Again</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={styles.emptyIcon}>📋</Text>
+                <Text style={styles.emptyTitle}>No {status} requests</Text>
+                <Text style={styles.emptyText}>
+                  {status === 'pending' 
+                    ? 'You have not requested any expert reviews yet.'
+                    : 'No completed reviews yet.'}
+                </Text>
+              </>
+            )}
+          </View>
+        }
       />
     </View>
   );
@@ -111,4 +145,10 @@ const styles = StyleSheet.create({
   subtitle: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
   badge: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: 16 },
   badgeText: { ...typography.caption, color: colors.white, fontWeight: '700' },
+  emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xxl, paddingHorizontal: spacing.lg },
+  emptyIcon: { fontSize: 64, marginBottom: spacing.md },
+  emptyTitle: { ...typography.h3, color: colors.text, marginBottom: spacing.sm, textAlign: 'center' },
+  emptyText: { ...typography.body, color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.md },
+  retryButton: { backgroundColor: colors.primary, paddingVertical: spacing.md, paddingHorizontal: spacing.xl, borderRadius: borderRadius.md, marginTop: spacing.sm },
+  retryText: { ...typography.body, color: colors.white, fontWeight: '600' },
 });

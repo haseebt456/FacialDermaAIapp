@@ -65,11 +65,19 @@ export const reviewService = {
       const response = await api.get(`/api/review-requests`, {
         params: { status, limit, offset },
       });
-      return { success: true, data: response.data };
+      // Backend returns { requests: [...], total: n, limit: n, offset: n }
+      const requests = Array.isArray(response.data) ? response.data : (response.data?.requests || []);
+      return { success: true, data: requests };
     } catch (error: any) {
+      let message = 'Unable to load review requests. Please try again.';
+      if (error.response?.data?.error) {
+        message = error.response.data.error;
+      } else if (error.message === 'Network Error') {
+        message = 'Cannot connect to server. Please check your internet connection.';
+      }
       return {
         success: false,
-        error: error.response?.data?.error || 'Failed to fetch review requests',
+        error: message,
       };
     }
   },
