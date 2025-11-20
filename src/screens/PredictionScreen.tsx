@@ -133,10 +133,10 @@ export default function PredictionScreen({ navigation }: any) {
         const list = await predictionService.getPredictions();
         if (list.success && list.data && list.data.length > 0) {
           // Get the most recent prediction (sorted by date)
-          const sorted = list.data.sort((a: any, b: any) => 
+          const sortedPredictions = [...list.data].sort((a: any, b: any) => 
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
-          setCreatedPredictionId(sorted[0]._id);
+          setCreatedPredictionId(sortedPredictions[0].id);
         }
       }, 1500);
     } else {
@@ -270,7 +270,7 @@ export default function PredictionScreen({ navigation }: any) {
         </Card>
       )}
 
-      <Card style={styles.infoCard}>
+      <Card style={styles.infoCard} key="tips">
         <Text style={styles.infoTitle}>Tips for Best Results</Text>
         <Text style={styles.infoItem}>• Ensure good lighting</Text>
         <Text style={styles.infoItem}>• Face should be clearly visible</Text>

@@ -91,7 +91,7 @@ export default function HistoryScreen({ navigation }: any) {
           <Text style={styles.date}>{formatDate(item.createdAt)}</Text>
           <Button
             title="Request Expert Review"
-            onPress={() => navigation.navigate('SelectDermatologist', { predictionId: item._id })}
+            onPress={() => navigation.navigate('SelectDermatologist', { predictionId: item.id })}
             size="small"
             style={{ marginTop: spacing.sm }}
           />
@@ -132,7 +132,7 @@ export default function HistoryScreen({ navigation }: any) {
         <FlatList
           data={predictions}
           renderItem={renderItem}
-          keyExtractor={(item) => item._id}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />

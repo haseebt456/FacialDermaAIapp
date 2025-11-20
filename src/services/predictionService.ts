@@ -1,7 +1,7 @@
 import api from './api';
 
 export interface Prediction {
-  _id: string;
+  id: string;
   userId: string;
   result: {
     predicted_label: string;
