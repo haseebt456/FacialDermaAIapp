@@ -136,10 +136,11 @@ export default function PredictionScreen({ navigation }: any) {
         }
       }).catch(() => {});
     } else {
-      if (result.error?.toLowerCase().includes("blur")) {
-        Alert.alert("Image Quality Issue", "Please use a clearer, sharper image");
-      } else if (result.error?.toLowerCase().includes("no face")) {
-        Alert.alert("No Face Detected", "Please ensure your face is clearly visible");
+      const errorLower = result.error?.toLowerCase() || '';
+      if (errorLower.includes("blur")) {
+        Alert.alert("Image Too Blurry", "The image quality is not clear enough. Please take another photo with better focus and lighting.");
+      } else if (errorLower.includes("no face")) {
+        Alert.alert("No Face Detected", "Please ensure your face is clearly visible in the image and try again.");
       } else {
         Alert.alert("Analysis Failed", result.error);
       }

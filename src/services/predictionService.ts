@@ -59,7 +59,9 @@ export const predictionService = {
       return { success: true, data: response.data as PredictionResult };
     } catch (error: any) {
       let message = 'Unable to analyze image. Please try again.';
-      if (error.response?.data?.error) {
+      if (error.response?.data?.detail?.error) {
+        message = error.response.data.detail.error;
+      } else if (error.response?.data?.error) {
         message = error.response.data.error;
       } else if (error.message === 'Network Error') {
         message = 'Cannot connect to server. Please check your internet connection and try again.';
