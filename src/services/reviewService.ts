@@ -28,10 +28,13 @@ export const reviewService = {
       });
       return { success: true, data: response.data };
     } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.error || 'Failed to fetch dermatologists',
-      };
+      let message = 'Unable to load dermatologists. Please try again.';
+      if (error.response?.data?.error) {
+        message = error.response.data.error;
+      } else if (error.message === 'Network Error') {
+        message = 'Cannot connect to server. Please check your internet connection.';
+      }
+      return { success: false, error: message };
     }
   },
 
@@ -43,10 +46,16 @@ export const reviewService = {
       });
       return { success: true, data: response.data as ReviewRequest };
     } catch (error: any) {
+      let message = 'Unable to send review request. Please try again.';
+      if (error.response?.data?.error) {
+        message = error.response.data.error;
+      } else if (error.message === 'Network Error') {
+        message = 'Cannot connect to server. Please check your internet connection.';
+      }
       return {
         success: false,
         status: error.response?.status,
-        error: error.response?.data?.error || 'Failed to create review request',
+        error: message,
       };
     }
   },

@@ -20,10 +20,13 @@ export const notificationService = {
       });
       return { success: true, data: response.data as NotificationItem[] };
     } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.error || 'Failed to fetch notifications',
-      };
+      let message = 'Unable to load notifications. Please try again.';
+      if (error.response?.data?.error) {
+        message = error.response.data.error;
+      } else if (error.message === 'Network Error') {
+        message = 'Cannot connect to server. Please check your internet connection.';
+      }
+      return { success: false, error: message };
     }
   },
 

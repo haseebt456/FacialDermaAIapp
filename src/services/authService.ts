@@ -29,10 +29,20 @@ export const authService = {
       });
       return { success: true, data: response.data };
     } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.error || 'Signup failed',
-      };
+      let message = 'Unable to create account. Please try again.';
+      if (error.response?.data?.error) {
+        const err = error.response.data.error.toLowerCase();
+        if (err.includes('username') && err.includes('exist')) {
+          message = 'This username is already taken. Please choose a different one.';
+        } else if (err.includes('email') && err.includes('exist')) {
+          message = 'This email is already registered. Try logging in instead.';
+        } else {
+          message = error.response.data.error;
+        }
+      } else if (error.message === 'Network Error') {
+        message = 'Cannot connect to server. Please check your internet connection.';
+      }
+      return { success: false, error: message };
     }
   },
 
@@ -50,10 +60,20 @@ export const authService = {
       
       return { success: true, data: response.data };
     } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.error || 'Login failed',
-      };
+      let message = 'Unable to login. Please check your credentials.';
+      if (error.response?.data?.error) {
+        const err = error.response.data.error.toLowerCase();
+        if (err.includes('invalid') || err.includes('incorrect')) {
+          message = 'Incorrect email/username or password. Please try again.';
+        } else if (err.includes('not found')) {
+          message = 'Account not found. Please check your credentials or sign up.';
+        } else {
+          message = error.response.data.error;
+        }
+      } else if (error.message === 'Network Error') {
+        message = 'Cannot connect to server. Please check your internet connection.';
+      }
+      return { success: false, error: message };
     }
   },
 

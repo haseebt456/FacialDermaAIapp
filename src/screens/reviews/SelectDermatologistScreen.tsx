@@ -18,7 +18,7 @@ export default function SelectDermatologistScreen({ route, navigation }: any) {
     if (res.success) {
       setData(res.data);
     } else {
-      Alert.alert('Error', res.error);
+      Alert.alert('Could Not Load Dermatologists', res.error || 'Please try again later.');
     }
   };
 
@@ -29,22 +29,23 @@ export default function SelectDermatologistScreen({ route, navigation }: any) {
 
   const requestReview = async (derm: Dermatologist) => {
     if (!predictionId) {
-      Alert.alert('Missing Prediction', 'Could not determine prediction to review. Please use History to request a review.');
+      Alert.alert('Missing Prediction', 'We could not find the prediction to review. Please go to History and select a prediction to request a review.');
       return;
     }
     setLoading(true);
     const res = await reviewService.createReviewRequest(predictionId, derm.id);
     setLoading(false);
     if (res.success) {
-      Alert.alert('Request Sent', 'Your review request has been sent to the selected dermatologist.', [
-        { text: 'OK', onPress: () => navigation.navigate('MyReviewRequests') },
+      Alert.alert('Request Sent Successfully', `Dr. ${derm.username} will review your case soon. You can track the status in "My Review Requests".`, [
+        { text: 'View Requests', onPress: () => navigation.navigate('MyReviewRequests') },
+        { text: 'OK', style: 'cancel' },
       ]);
     } else if (res.status === 409) {
-      Alert.alert('Already Requested', 'A review has already been requested for this prediction.');
+      Alert.alert('Already Requested', 'You have already requested a review for this prediction. Please check "My Review Requests" for the status.');
     } else if (res.status === 404) {
-      Alert.alert('Not Found', 'Prediction not found. Please try again from History.');
+      Alert.alert('Prediction Not Found', 'This prediction no longer exists. Please go to History and try with another prediction.');
     } else {
-      Alert.alert('Error', res.error || 'Failed to create review request');
+      Alert.alert('Request Failed', res.error || 'Unable to send review request. Please try again.');
     }
   };
 

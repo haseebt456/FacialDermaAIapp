@@ -49,16 +49,26 @@ export const predictionService = {
 
       const response = await api.post('/api/predictions/predict', formData, {
         headers: {
+          // Let Axios set the correct multipart boundary
           'Content-Type': 'multipart/form-data',
         },
+        transformRequest: [(data) => data],
+        timeout: 60000,
       });
 
       return { success: true, data: response.data as PredictionResult };
     } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.error || 'Prediction failed',
-      };
+      let message = 'Unable to analyze image. Please try again.';
+      if (error.response?.data?.error) {
+        message = error.response.data.error;
+      } else if (error.message === 'Network Error') {
+        message = 'Cannot connect to server. Please check your internet connection and try again.';
+      } else if (error.code === 'ECONNABORTED') {
+        message = 'Analysis is taking too long. Please try with a smaller image.';
+      } else if (error.message) {
+        message = error.message;
+      }
+      return { success: false, error: message };
     }
   },
 };

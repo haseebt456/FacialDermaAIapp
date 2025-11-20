@@ -114,7 +114,7 @@ export default function PredictionScreen({ navigation }: any) {
 
   const analyzeSkin = async () => {
     if (!selectedImage) {
-      Alert.alert("Error", "Please select an image first");
+      Alert.alert("No Image Selected", "Please select or capture an image to analyze.");
       return;
     }
 
@@ -124,22 +124,21 @@ export default function PredictionScreen({ navigation }: any) {
 
     if (result.success && result.data) {
       setPrediction(result.data);
-      // Try to resolve prediction id by matching image url with latest history item
-      try {
-        const list = await predictionService.getPredictions();
-        if (list.success && list.data && result.data.image_url) {
-          const match = list.data.find((p: any) => p.imageUrl === result.data.image_url);
-          if (match) setCreatedPredictionId(match._id);
-        }
-      } catch {}
       Alert.alert(
         "Analysis Complete",
         `Detected: ${result.data.predicted_label}\nConfidence: ${(result.data.confidence_score * 100).toFixed(1)}%`
       );
+      // Try to resolve prediction id by matching image url with latest history item (non-blocking)
+      predictionService.getPredictions().then((list) => {
+        if (list.success && list.data && result.data.image_url) {
+          const match = list.data.find((p: any) => p.imageUrl === result.data.image_url);
+          if (match) setCreatedPredictionId(match._id);
+        }
+      }).catch(() => {});
     } else {
-      if (result.error?.includes("blury")) {
+      if (result.error?.toLowerCase().includes("blur")) {
         Alert.alert("Image Quality Issue", "Please use a clearer, sharper image");
-      } else if (result.error?.includes("No face detected")) {
+      } else if (result.error?.toLowerCase().includes("no face")) {
         Alert.alert("No Face Detected", "Please ensure your face is clearly visible");
       } else {
         Alert.alert("Analysis Failed", result.error);
@@ -254,7 +253,10 @@ export default function PredictionScreen({ navigation }: any) {
                 if (createdPredictionId) {
                   navigation.navigate('SelectDermatologist', { predictionId: createdPredictionId });
                 } else {
-                  Alert.alert('Prediction Not Saved Yet', 'Please open History and request a review from the desired prediction entry.');
+                  Alert.alert('Prediction Not Found', 'We could not locate this prediction. Please go to History and request a review from there.', [
+                    { text: 'Go to History', onPress: () => navigation.navigate('History') },
+                    { text: 'Cancel', style: 'cancel' },
+                  ]);
                 }
               }}
               style={{ marginTop: spacing.sm }}

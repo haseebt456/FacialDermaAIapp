@@ -10,7 +10,7 @@ const BASE_URL = __DEV__
 const api = axios.create({
   baseURL: BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    Accept: 'application/json',
   },
   timeout: 30000, // 30 seconds (prediction can take time)
 });
