@@ -12,7 +12,7 @@ export interface ReviewRequest {
   predictionId: string;
   patientId: string;
   dermatologistId: string;
-  status: 'pending' | 'reviewed';
+  status: 'pending' | 'reviewed' | 'rejected';
   comment?: string | null;
   createdAt: string;
   reviewedAt?: string | null;

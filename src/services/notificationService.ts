@@ -2,13 +2,14 @@ import api from './api';
 
 export interface NotificationItem {
   id: string;
-  title: string;
+  userId: string;
+  type: 'review_requested' | 'review_submitted' | 'review_rejected';
   message: string;
   createdAt: string;
-  read: boolean;
+  isRead: boolean;
   ref?: {
-    type?: string;
     requestId?: string;
+    predictionId?: string;
   } | null;
 }
 
@@ -22,7 +23,9 @@ export const notificationService = {
       const notifications = Array.isArray(response.data) 
         ? response.data 
         : (response.data?.notifications || []);
-      return { success: true, data: notifications };
+      const total = response.data?.total || notifications.length;
+      const unreadCount = response.data?.unreadCount || 0;
+      return { success: true, data: notifications, total, unreadCount };
     } catch (error: any) {
       let message = 'Unable to load notifications. Please try again.';
       if (error.response?.data?.error) {

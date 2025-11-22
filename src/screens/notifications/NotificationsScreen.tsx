@@ -42,7 +42,7 @@ export default function NotificationsScreen({ navigation }: any) {
   }, [navigation]);
 
   const openNotification = async (item: NotificationItem) => {
-    if (!item.read) {
+    if (!item.isRead) {
       await notificationService.markAsRead(item.id);
       await refresh();
       await load();
@@ -58,11 +58,10 @@ export default function NotificationsScreen({ navigation }: any) {
       <Card style={styles.card}>
         <View style={styles.row}>
           <View style={styles.flex1}>
-            <Text style={[styles.title, !item.read && styles.unread]}>{item.title}</Text>
-            <Text style={styles.message}>{item.message}</Text>
+            <Text style={[styles.title, !item.isRead && styles.unread]}>{item.message}</Text>
             <Text style={styles.time}>{new Date(item.createdAt).toLocaleString()}</Text>
           </View>
-          {!item.read && <View style={styles.dot} />}
+          {!item.isRead && <View style={styles.dot} />}
         </View>
       </Card>
     </TouchableOpacity>

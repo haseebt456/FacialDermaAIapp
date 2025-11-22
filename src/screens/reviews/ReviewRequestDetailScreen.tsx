@@ -41,13 +41,22 @@ export default function ReviewRequestDetailScreen({ route, navigation }: any) {
 
       <Card style={{ margin: spacing.lg }}>
         <Text style={styles.label}>Status</Text>
-        <Text style={[styles.value, { color: item.status === 'pending' ? colors.warning : colors.success }]}>
+        <Text style={[
+          styles.value, 
+          { color: 
+            item.status === 'pending' ? colors.warning : 
+            item.status === 'rejected' ? colors.danger : 
+            colors.success 
+          }
+        ]}>
           {item.status}
         </Text>
 
         {item.comment ? (
           <>
-            <Text style={styles.label}>Dermatologist Comment</Text>
+            <Text style={styles.label}>
+              {item.status === 'rejected' ? 'Rejection Reason' : 'Dermatologist Review'}
+            </Text>
             <Text style={styles.value}>{item.comment}</Text>
           </>
         ) : (

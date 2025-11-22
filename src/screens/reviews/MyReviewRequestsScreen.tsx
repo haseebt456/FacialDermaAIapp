@@ -43,7 +43,14 @@ export default function MyReviewRequestsScreen({ navigation }: any) {
               {item.dermatologistUsername ? `Derm: ${item.dermatologistUsername}` : 'Dermatologist: —'}
             </Text>
           </View>
-          <View style={[styles.badge, { backgroundColor: item.status === 'pending' ? colors.warning : colors.success }]}>
+          <View style={[
+            styles.badge, 
+            { backgroundColor: 
+              item.status === 'pending' ? colors.warning : 
+              item.status === 'rejected' ? colors.danger : 
+              colors.success 
+            }
+          ]}>
             <Text style={styles.badgeText}>{item.status}</Text>
           </View>
         </View>
