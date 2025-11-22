@@ -21,6 +21,7 @@ export default function PredictionScreen({ navigation }: any) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [prediction, setPrediction] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [createdPredictionId, setCreatedPredictionId] = useState<string | null>(null);
 
   const requestCameraPermission = async () => {
     if (Platform.OS === "android") {
@@ -123,6 +124,14 @@ export default function PredictionScreen({ navigation }: any) {
 
     if (result.success && result.data) {
       setPrediction(result.data);
+      // Try to resolve prediction id by matching image url with latest history item
+      try {
+        const list = await predictionService.getPredictions();
+        if (list.success && list.data && result.data.image_url) {
+          const match = list.data.find((p: any) => p.imageUrl === result.data.image_url);
+          if (match) setCreatedPredictionId(match._id);
+        }
+      } catch {}
       Alert.alert(
         "Analysis Complete",
         `Detected: ${result.data.predicted_label}\nConfidence: ${(result.data.confidence_score * 100).toFixed(1)}%`
@@ -234,9 +243,21 @@ export default function PredictionScreen({ navigation }: any) {
               onPress={() => {
                 setSelectedImage(null);
                 setPrediction(null);
+                setCreatedPredictionId(null);
               }}
               variant="outline"
               style={styles.resetButton}
+            />
+            <Button
+              title="Request Expert Review"
+              onPress={() => {
+                if (createdPredictionId) {
+                  navigation.navigate('SelectDermatologist', { predictionId: createdPredictionId });
+                } else {
+                  Alert.alert('Prediction Not Saved Yet', 'Please open History and request a review from the desired prediction entry.');
+                }
+              }}
+              style={{ marginTop: spacing.sm }}
             />
           </View>
         </Card>

@@ -10,9 +10,11 @@ import {
 import { authService } from "../services/authService";
 import Card from "../components/Card";
 import { colors, spacing, typography, shadows } from "../styles/theme";
+import { useNotifications } from "../contexts/NotificationsContext";
 
 export default function HomeScreen({ navigation }: any) {
   const [user, setUser] = useState<any>(null);
+  const { unreadCount } = useNotifications();
 
   useEffect(() => {
     loadUser();
@@ -48,9 +50,19 @@ export default function HomeScreen({ navigation }: any) {
           <Text style={styles.greeting}>Welcome back,</Text>
           <Text style={styles.username}>{user?.username || "User"}</Text>
         </View>
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={styles.bellButton}>
+            <Text style={styles.bellIcon}>🔔</Text>
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <Card style={styles.mainCard}>
@@ -75,6 +87,17 @@ export default function HomeScreen({ navigation }: any) {
             <Text style={styles.gridIcon}>📋</Text>
             <Text style={styles.gridTitle}>History</Text>
             <Text style={styles.gridDescription}>View past analyses</Text>
+          </Card>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.gridItem}
+          onPress={() => navigation.navigate('MyReviewRequests')}
+        >
+          <Card style={styles.gridCard}>
+            <Text style={styles.gridIcon}>📝</Text>
+            <Text style={styles.gridTitle}>Reviews</Text>
+            <Text style={styles.gridDescription}>Manage expert reviews</Text>
           </Card>
         </TouchableOpacity>
 
@@ -117,6 +140,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     ...shadows.small,
   },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  bellButton: { marginRight: spacing.md },
+  bellIcon: { fontSize: 20 },
+  badge: {
+    position: 'absolute',
+    right: -6,
+    top: -6,
+    backgroundColor: colors.error,
+    borderRadius: 10,
+    paddingHorizontal: 4,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: { ...typography.caption, color: colors.white, fontWeight: '700' },
   greeting: {
     ...typography.bodySmall,
     color: colors.textSecondary,

@@ -12,6 +12,7 @@ import { predictionService, Prediction } from "../services/predictionService";
 import Card from "../components/Card";
 import Loading from "../components/Loading";
 import { colors, spacing, typography, shadows, borderRadius } from "../styles/theme";
+import Button from "../components/Button";
 
 export default function HistoryScreen({ navigation }: any) {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -88,6 +89,12 @@ export default function HistoryScreen({ navigation }: any) {
             </Text>
           </View>
           <Text style={styles.date}>{formatDate(item.createdAt)}</Text>
+          <Button
+            title="Request Expert Review"
+            onPress={() => navigation.navigate('SelectDermatologist', { predictionId: item._id })}
+            size="small"
+            style={{ marginTop: spacing.sm }}
+          />
         </View>
       </View>
     </Card>
