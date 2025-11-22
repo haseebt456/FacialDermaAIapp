@@ -5,6 +5,7 @@ import AuthStack from "./AuthStack";
 import MainStack from "./MainStack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Loading from "../components/Loading";
+import BottomNav from "../components/BottomNav";
 
 const RootStack = createStackNavigator();
 
@@ -54,6 +55,7 @@ export default function AppNavigator() {
           <RootStack.Screen name="Auth" component={AuthStack} />
         )}
       </RootStack.Navigator>
+      {isLoggedIn && <BottomNav navigationRef={navigationRef} />}
     </NavigationContainer>
   );
 }

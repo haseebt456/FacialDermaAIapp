@@ -17,7 +17,10 @@ interface ScreenContainerProps {
   contentContainerStyle?: ViewStyle;
   withKeyboardAvoid?: boolean;
   backgroundColor?: string;
+  withBottomPadding?: boolean; // reserve space for persistent bottom nav
 }
+
+const BOTTOM_NAV_HEIGHT = 88; // includes safe-area approximation
 
 export default function ScreenContainer({
   children,
@@ -26,6 +29,7 @@ export default function ScreenContainer({
   contentContainerStyle,
   withKeyboardAvoid = true,
   backgroundColor = colors.backgroundGray,
+  withBottomPadding = true,
 }: ScreenContainerProps) {
   const Container = scrollable ? ScrollView : View;
   const containerProps = scrollable
@@ -38,7 +42,11 @@ export default function ScreenContainer({
 
   const content = (
     <Container
-      style={[styles.container, { backgroundColor }, style]}
+      style={[
+        styles.container,
+        { backgroundColor, paddingBottom: (withBottomPadding ? BOTTOM_NAV_HEIGHT : 0) as number },
+        style,
+      ]}
       {...containerProps}
     >
       {children}
