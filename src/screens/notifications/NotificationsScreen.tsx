@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, RefreshControl, Alert } from 'react-native';
 import Card from '../../components/Card';
+import ScreenContainer from '../../components/ScreenContainer';
 import { colors, spacing, typography, shadows, borderRadius } from '../../styles/theme';
 import { notificationService, NotificationItem } from '../../services/notificationService';
 import { useNotifications } from '../../contexts/NotificationsContext';
@@ -48,8 +49,13 @@ export default function NotificationsScreen({ navigation }: any) {
       await load();
     }
     const reqId = item.ref?.requestId;
+    const predId = item.ref?.predictionId;
+    
+    // Navigate to comprehensive detail showing both prediction and review info
     if (reqId) {
-      navigation.navigate('ReviewRequestDetail', { id: reqId });
+      navigation.navigate('AnalysisDetail', { requestId: reqId, predictionId: predId });
+    } else if (predId) {
+      navigation.navigate('AnalysisDetail', { predictionId: predId });
     }
   };
 
@@ -75,16 +81,17 @@ export default function NotificationsScreen({ navigation }: any) {
   };
 
   const renderItem = ({ item }: { item: NotificationItem }) => (
-    <TouchableOpacity
-      onPress={() => openNotification(item)}
-      activeOpacity={0.7}
-    >
-      <Card style={!item.isRead ? styles.unreadCard : styles.card}>
+    <Card style={!item.isRead ? styles.unreadCard : styles.card}>
+      <TouchableOpacity
+        onPress={() => openNotification(item)}
+        activeOpacity={0.7}
+        style={styles.notifTouchable}
+      >
         <View style={styles.notifContent}>
           <View style={[styles.iconCircle, !item.isRead && styles.unreadIconCircle]}>
             <Text style={styles.notifIcon}>{getNotificationIcon(item.type)}</Text>
           </View>
-          <View style={styles.flex1}>
+          <View style={styles.textContent}>
             <Text style={[styles.message, !item.isRead && styles.unreadText]}>
               {item.message}
             </Text>
@@ -92,20 +99,25 @@ export default function NotificationsScreen({ navigation }: any) {
           </View>
           {!item.isRead && <View style={styles.unreadDot} />}
         </View>
-      </Card>
-    </TouchableOpacity>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => handleDelete(item)}
+        style={styles.deleteButton}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Text style={styles.deleteText}>✕</Text>
+      </TouchableOpacity>
+    </Card>
   );
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer scrollable={false} backgroundColor={colors.backgroundGray}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
-        <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
-          <Text style={styles.refreshIcon}>↻</Text>
-        </TouchableOpacity>
+        <View style={styles.spacer} />
       </View>
 
       <FlatList
@@ -141,13 +153,11 @@ export default function NotificationsScreen({ navigation }: any) {
           </View>
         }
       />
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.backgroundGray },
-  flex1: { flex: 1 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -159,18 +169,24 @@ const styles = StyleSheet.create({
   backButton: { padding: spacing.sm },
   backText: { ...typography.body, color: colors.primary, fontWeight: '600' },
   headerTitle: { ...typography.h2, color: colors.text },
-  refreshButton: {
-    padding: spacing.sm,
+  spacer: { width: 60 },
+  card: { 
+    marginBottom: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: spacing.sm,
   },
-  refreshIcon: {
-    fontSize: 24,
-  },
-  card: { marginBottom: spacing.md },
   unreadCard: {
     marginBottom: spacing.md,
     backgroundColor: colors.primaryLight,
     borderLeftWidth: 4,
     borderLeftColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: spacing.sm,
+  },
+  notifTouchable: {
+    flex: 1,
   },
   notifContent: {
     flexDirection: 'row',
@@ -194,16 +210,13 @@ const styles = StyleSheet.create({
   textContent: {
     flex: 1,
   },
-  row: { flexDirection: 'row', alignItems: 'center' },
-  title: { ...typography.body, color: colors.text, fontWeight: '700' },
   unreadText: { 
     color: colors.primary,
     fontWeight: '700',
   },
   message: { 
-    ...typography.bodySmall, 
-    color: colors.textSecondary, 
-    marginTop: spacing.xs,
+    ...typography.body, 
+    color: colors.text,
   },
   time: { 
     ...typography.caption, 
@@ -216,6 +229,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary, 
     borderRadius: 5,
     marginLeft: spacing.sm,
+  },
+  deleteButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: spacing.sm,
+  },
+  deleteText: {
+    fontSize: 20,
+    color: colors.textLight,
+    fontWeight: '600',
   },
   emptyContainer: { 
     alignItems: 'center', 
