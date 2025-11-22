@@ -5,7 +5,6 @@ import Card from '../../components/Card';
 import { colors, spacing, typography, shadows, borderRadius } from '../../styles/theme';
 
 export default function MyReviewRequestsScreen({ navigation }: any) {
-  const [status, setStatus] = useState<'pending' | 'reviewed'>('pending');
   const [items, setItems] = useState<ReviewRequest[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -14,7 +13,7 @@ export default function MyReviewRequestsScreen({ navigation }: any) {
   const load = async () => {
     setLoading(true);
     setError(null);
-    const res = await reviewService.listReviewRequests(status, 50, 0);
+    const res = await reviewService.listReviewRequests(undefined, 50, 0);
     setLoading(false);
     if (res.success) {
       setItems(res.data || []);
@@ -26,8 +25,7 @@ export default function MyReviewRequestsScreen({ navigation }: any) {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status]);
+  }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -65,15 +63,6 @@ export default function MyReviewRequestsScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.tabs}>
-        <TouchableOpacity onPress={() => setStatus('pending')} style={[styles.tab, status === 'pending' && styles.tabActive]}>
-          <Text style={[styles.tabText, status === 'pending' && styles.tabTextActive]}>Pending</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => setStatus('reviewed')} style={[styles.tab, status === 'reviewed' && styles.tabActive]}>
-          <Text style={[styles.tabText, status === 'reviewed' && styles.tabTextActive]}>Reviewed</Text>
-        </TouchableOpacity>
-      </View>
-
       <FlatList
         data={items}
         keyExtractor={(item) => item.id}
@@ -96,11 +85,9 @@ export default function MyReviewRequestsScreen({ navigation }: any) {
             ) : (
               <>
                 <Text style={styles.emptyIcon}>📋</Text>
-                <Text style={styles.emptyTitle}>No {status} requests</Text>
+                <Text style={styles.emptyTitle}>No Review Requests</Text>
                 <Text style={styles.emptyText}>
-                  {status === 'pending' 
-                    ? 'You have not requested any expert reviews yet.'
-                    : 'No completed reviews yet.'}
+                  You have not requested any expert reviews yet. Upload a prediction and request a review from History.
                 </Text>
               </>
             )}
@@ -126,18 +113,6 @@ const styles = StyleSheet.create({
   headerTitle: { ...typography.h2, color: colors.text },
   refreshButton: { padding: spacing.sm },
   refreshText: { ...typography.body, color: colors.primary, fontWeight: '600' },
-  tabs: {
-    flexDirection: 'row',
-    backgroundColor: colors.white,
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.lg,
-    borderRadius: borderRadius.md,
-    overflow: 'hidden',
-  },
-  tab: { flex: 1, padding: spacing.md, alignItems: 'center' },
-  tabActive: { backgroundColor: colors.backgroundGray },
-  tabText: { ...typography.body, color: colors.textSecondary },
-  tabTextActive: { color: colors.text, fontWeight: '700' },
   card: { margin: spacing.lg, marginBottom: 0 },
   row: { flexDirection: 'row', alignItems: 'center' },
   flex1: { flex: 1 },
