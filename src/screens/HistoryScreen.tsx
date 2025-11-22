@@ -11,8 +11,8 @@ import {
 import { predictionService, Prediction } from "../services/predictionService";
 import Card from "../components/Card";
 import Loading from "../components/Loading";
+import CustomButton from "../components/CustomButton";
 import { colors, spacing, typography, shadows, borderRadius } from "../styles/theme";
-import Button from "../components/Button";
 
 export default function HistoryScreen({ navigation }: any) {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -89,8 +89,9 @@ export default function HistoryScreen({ navigation }: any) {
             </Text>
           </View>
           <Text style={styles.date}>{formatDate(item.createdAt)}</Text>
-          <Button
-            title="Request Expert Review"
+          <CustomButton
+            title="Request Review"
+            icon="👨‍⚕️"
             onPress={() => navigation.navigate('SelectDermatologist', { predictionId: item.id })}
             size="small"
             style={{ marginTop: spacing.sm }}
@@ -121,12 +122,12 @@ export default function HistoryScreen({ navigation }: any) {
           <Text style={styles.emptyText}>
             Your analysis results will appear here
           </Text>
-          <TouchableOpacity
-            style={styles.startButton}
+          <CustomButton
+            title="Start First Analysis"
+            icon="🔬"
             onPress={() => navigation.navigate("Prediction")}
-          >
-            <Text style={styles.startButtonText}>Start First Analysis</Text>
-          </TouchableOpacity>
+            size="large"
+          />
         </View>
       ) : (
         <FlatList
@@ -240,15 +241,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: spacing.xl,
   },
-  startButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
-    borderRadius: borderRadius.lg,
-  },
-  startButtonText: {
-    ...typography.body,
-    color: colors.white,
-    fontWeight: "600",
-  },
+
 });

@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   Image,
   Alert,
   TouchableOpacity,
@@ -12,9 +11,10 @@ import {
 } from "react-native";
 import { launchCamera, launchImageLibrary } from "react-native-image-picker";
 import { predictionService } from "../services/predictionService";
-import Button from "../components/Button";
+import CustomButton from "../components/CustomButton";
 import Card from "../components/Card";
 import Loading from "../components/Loading";
+import ScreenContainer from "../components/ScreenContainer";
 import { colors, spacing, typography, shadows, borderRadius } from "../styles/theme";
 
 export default function PredictionScreen({ navigation }: any) {
@@ -164,32 +164,39 @@ export default function PredictionScreen({ navigation }: any) {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScreenContainer
+      backgroundColor={colors.backgroundGray}
+      withKeyboardAvoid={false}
+    >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Skin Analysis</Text>
+        <Text style={styles.title}>AI Skin Analysis</Text>
         <View style={styles.spacer} />
       </View>
 
       <Card style={styles.uploadCard}>
         {!selectedImage ? (
-          <TouchableOpacity style={styles.uploadArea} onPress={pickImage}>
-            <Text style={styles.uploadIcon}>📷</Text>
-            <Text style={styles.uploadText}>Tap to select or capture image</Text>
+          <TouchableOpacity style={styles.uploadArea} onPress={pickImage} activeOpacity={0.7}>
+            <View style={styles.uploadIconContainer}>
+              <Text style={styles.uploadIcon}>📷</Text>
+            </View>
+            <Text style={styles.uploadText}>Take or Select Photo</Text>
             <Text style={styles.uploadSubtext}>
-              Make sure the face is clearly visible and well-lit
+              Ensure your face is clearly visible with good lighting
             </Text>
           </TouchableOpacity>
         ) : (
           <View>
             <Image source={{ uri: selectedImage }} style={styles.previewImage} />
-            <Button
-              title="Select Different Image"
+            <CustomButton
+              title="Change Image"
+              icon="🔄"
               onPress={pickImage}
               variant="outline"
-              size="small"
+              size="medium"
+              fullWidth
               style={styles.changeButton}
             />
           </View>
@@ -197,12 +204,16 @@ export default function PredictionScreen({ navigation }: any) {
       </Card>
 
       {selectedImage && !prediction && (
-        <Button
-          title="Analyze Skin Condition"
-          onPress={analyzeSkin}
-          loading={loading}
-          style={styles.analyzeButton}
-        />
+        <View style={styles.analyzeButtonContainer}>
+          <CustomButton
+            title="Analyze Now"
+            icon="🔬"
+            onPress={analyzeSkin}
+            loading={loading}
+            size="large"
+            fullWidth
+          />
+        </View>
       )}
 
       {loading && (
@@ -242,18 +253,9 @@ export default function PredictionScreen({ navigation }: any) {
               ⚠️ This is an AI-based prediction. Please consult a dermatologist for proper diagnosis
               and treatment.
             </Text>
-            <Button
-              title="Analyze Another Image"
-              onPress={() => {
-                setSelectedImage(null);
-                setPrediction(null);
-                setCreatedPredictionId(null);
-              }}
-              variant="outline"
-              style={styles.resetButton}
-            />
-            <Button
+            <CustomButton
               title="Request Expert Review"
+              icon="👨‍⚕️"
               onPress={() => {
                 if (createdPredictionId) {
                   navigation.navigate('SelectDermatologist', { predictionId: createdPredictionId });
@@ -264,7 +266,20 @@ export default function PredictionScreen({ navigation }: any) {
                   ]);
                 }
               }}
-              style={{ marginTop: spacing.sm }}
+              size="large"
+              fullWidth
+            />
+            <CustomButton
+              title="Analyze Another"
+              onPress={() => {
+                setSelectedImage(null);
+                setPrediction(null);
+                setCreatedPredictionId(null);
+              }}
+              variant="ghost"
+              size="medium"
+              fullWidth
+              style={styles.resetButton}
             />
           </View>
         </Card>
@@ -277,15 +292,11 @@ export default function PredictionScreen({ navigation }: any) {
         <Text style={styles.infoItem}>• Avoid blurry images</Text>
         <Text style={styles.infoItem}>• Remove glasses if possible</Text>
       </Card>
-    </ScrollView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.backgroundGray,
-  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -318,12 +329,20 @@ const styles = StyleSheet.create({
     padding: spacing.xxl,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 300,
+    minHeight: 320,
     backgroundColor: colors.backgroundGray,
   },
+  uploadIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: colors.primaryLight,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: spacing.lg,
+  },
   uploadIcon: {
-    fontSize: 64,
-    marginBottom: spacing.md,
+    fontSize: 48,
   },
   uploadText: {
     ...typography.h3,
@@ -344,8 +363,8 @@ const styles = StyleSheet.create({
   changeButton: {
     margin: spacing.md,
   },
-  analyzeButton: {
-    marginHorizontal: spacing.lg,
+  analyzeButtonContainer: {
+    paddingHorizontal: spacing.lg,
     marginBottom: spacing.md,
   },
   loadingCard: {
@@ -401,7 +420,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   resetButton: {
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
   },
   infoCard: {
     margin: spacing.lg,

@@ -3,12 +3,13 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Alert,
 } from "react-native";
 import { authService } from "../services/authService";
 import Card from "../components/Card";
+import ScreenContainer from "../components/ScreenContainer";
+import CustomButton from "../components/CustomButton";
 import { colors, spacing, typography, shadows } from "../styles/theme";
 
 export default function ProfileScreen({ navigation }: any) {
@@ -47,7 +48,10 @@ export default function ProfileScreen({ navigation }: any) {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScreenContainer
+      backgroundColor={colors.backgroundGray}
+      withKeyboardAvoid={false}
+    >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backText}>← Back</Text>
@@ -112,12 +116,19 @@ export default function ProfileScreen({ navigation }: any) {
         </TouchableOpacity>
       </Card>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
+      <View style={styles.logoutContainer}>
+        <CustomButton
+          title="Logout"
+          icon="🚪"
+          onPress={handleLogout}
+          variant="danger"
+          size="large"
+          fullWidth
+        />
+      </View>
 
       <Text style={styles.version}>Version 1.0.0</Text>
-    </ScrollView>
+    </ScreenContainer>
   );
 }
 
@@ -224,18 +235,9 @@ const styles = StyleSheet.create({
     ...typography.h2,
     color: colors.textLight,
   },
-  logoutButton: {
-    backgroundColor: colors.error,
-    marginHorizontal: spacing.lg,
+  logoutContainer: {
+    paddingHorizontal: spacing.lg,
     marginVertical: spacing.md,
-    paddingVertical: spacing.md,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  logoutText: {
-    ...typography.body,
-    color: colors.white,
-    fontWeight: "600",
   },
   version: {
     ...typography.caption,

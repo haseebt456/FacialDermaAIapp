@@ -33,14 +33,26 @@ export default function MyReviewRequestsScreen({ navigation }: any) {
     setRefreshing(false);
   };
 
+  const getStatusIcon = (status: string) => {
+    if (status === 'pending') return '⏳';
+    if (status === 'rejected') return '❌';
+    return '✅';
+  };
+
   const renderItem = ({ item }: { item: ReviewRequest }) => (
-    <TouchableOpacity onPress={() => navigation.navigate('ReviewRequestDetail', { id: item.id })}>
+    <TouchableOpacity
+      onPress={() => navigation.navigate('ReviewRequestDetail', { id: item.id })}
+      activeOpacity={0.7}
+    >
       <Card style={styles.card}>
-        <View style={styles.row}>
+        <View style={styles.cardHeader}>
+          <View style={styles.iconCircle}>
+            <Text style={styles.statusIcon}>{getStatusIcon(item.status)}</Text>
+          </View>
           <View style={styles.flex1}>
             <Text style={styles.titleText}>Request #{item.id.slice(-6)}</Text>
             <Text style={styles.subtitle}>
-              {item.dermatologistUsername ? `Derm: ${item.dermatologistUsername}` : 'Dermatologist: —'}
+              {item.dermatologistUsername ? `Dr. ${item.dermatologistUsername}` : 'Dermatologist: —'}
             </Text>
           </View>
           <View style={[
@@ -51,7 +63,7 @@ export default function MyReviewRequestsScreen({ navigation }: any) {
               colors.success 
             }
           ]}>
-            <Text style={styles.badgeText}>{item.status}</Text>
+            <Text style={styles.badgeText}>{item.status.toUpperCase()}</Text>
           </View>
         </View>
       </Card>
@@ -64,9 +76,9 @@ export default function MyReviewRequestsScreen({ navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Review Requests</Text>
+        <Text style={styles.headerTitle}>My Reviews</Text>
         <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
-          <Text style={styles.refreshText}>↻</Text>
+          <Text style={styles.refreshIcon}>↻</Text>
         </TouchableOpacity>
       </View>
 
@@ -117,16 +129,26 @@ const styles = StyleSheet.create({
   },
   backButton: { padding: spacing.sm },
   backText: { ...typography.body, color: colors.primary, fontWeight: '600' },
-  headerTitle: { ...typography.h2, color: colors.text },
+  headerTitle: { ...typography.h2, color: colors.text, fontWeight: '700' },
   refreshButton: { padding: spacing.sm },
-  refreshText: { ...typography.body, color: colors.primary, fontWeight: '600' },
+  refreshIcon: { fontSize: 24, color: colors.primary },
   card: { margin: spacing.lg, marginBottom: 0 },
-  row: { flexDirection: 'row', alignItems: 'center' },
+  cardHeader: { flexDirection: 'row', alignItems: 'center' },
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.backgroundGray,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  statusIcon: { fontSize: 20 },
   flex1: { flex: 1 },
-  titleText: { ...typography.body, color: colors.text, fontWeight: '600' },
-  subtitle: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
-  badge: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: 16 },
-  badgeText: { ...typography.caption, color: colors.white, fontWeight: '700' },
+  titleText: { ...typography.body, color: colors.text, fontWeight: '700', marginBottom: 4 },
+  subtitle: { ...typography.caption, color: colors.textSecondary },
+  badge: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: 12 },
+  badgeText: { ...typography.caption, fontSize: 10, color: colors.white, fontWeight: '700', letterSpacing: 0.5 },
   emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xxl, paddingHorizontal: spacing.lg },
   emptyIcon: { fontSize: 64, marginBottom: spacing.md },
   emptyTitle: { ...typography.h3, color: colors.text, marginBottom: spacing.sm, textAlign: 'center' },

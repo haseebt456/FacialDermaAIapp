@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, RefreshControl } from 'react-native';
 import Card from '../../components/Card';
-import { colors, spacing, typography, shadows } from '../../styles/theme';
+import { colors, spacing, typography, shadows, borderRadius } from '../../styles/theme';
 import { notificationService, NotificationItem } from '../../services/notificationService';
 import { useNotifications } from '../../contexts/NotificationsContext';
 
@@ -53,15 +53,44 @@ export default function NotificationsScreen({ navigation }: any) {
     }
   };
 
+  const getNotificationIcon = (type: string) => {
+    if (type === 'review_submitted') return '✅';
+    if (type === 'review_rejected') return '❌';
+    return '🔔';
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
   const renderItem = ({ item }: { item: NotificationItem }) => (
-    <TouchableOpacity onPress={() => openNotification(item)}>
-      <Card style={styles.card}>
-        <View style={styles.row}>
-          <View style={styles.flex1}>
-            <Text style={[styles.title, !item.isRead && styles.unread]}>{item.message}</Text>
-            <Text style={styles.time}>{new Date(item.createdAt).toLocaleString()}</Text>
+    <TouchableOpacity
+      onPress={() => openNotification(item)}
+      activeOpacity={0.7}
+    >
+      <Card style={!item.isRead ? styles.unreadCard : styles.card}>
+        <View style={styles.notifContent}>
+          <View style={[styles.iconCircle, !item.isRead && styles.unreadIconCircle]}>
+            <Text style={styles.notifIcon}>{getNotificationIcon(item.type)}</Text>
           </View>
-          {!item.isRead && <View style={styles.dot} />}
+          <View style={styles.flex1}>
+            <Text style={[styles.message, !item.isRead && styles.unreadText]}>
+              {item.message}
+            </Text>
+            <Text style={styles.time}>{formatTime(item.createdAt)}</Text>
+          </View>
+          {!item.isRead && <View style={styles.unreadDot} />}
         </View>
       </Card>
     </TouchableOpacity>
@@ -74,7 +103,9 @@ export default function NotificationsScreen({ navigation }: any) {
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
-        <View style={styles.spacer} />
+        <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
+          <Text style={styles.refreshIcon}>↻</Text>
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -128,18 +159,89 @@ const styles = StyleSheet.create({
   backButton: { padding: spacing.sm },
   backText: { ...typography.body, color: colors.primary, fontWeight: '600' },
   headerTitle: { ...typography.h2, color: colors.text },
-  spacer: { width: 60 },
+  refreshButton: {
+    padding: spacing.sm,
+  },
+  refreshIcon: {
+    fontSize: 24,
+  },
   card: { marginBottom: spacing.md },
+  unreadCard: {
+    marginBottom: spacing.md,
+    backgroundColor: colors.primaryLight,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
+  },
+  notifContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  iconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.backgroundGray,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  unreadIconCircle: {
+    backgroundColor: colors.primaryLight,
+  },
+  notifIcon: {
+    fontSize: 22,
+  },
+  textContent: {
+    flex: 1,
+  },
   row: { flexDirection: 'row', alignItems: 'center' },
   title: { ...typography.body, color: colors.text, fontWeight: '700' },
-  unread: { color: colors.primary },
-  message: { ...typography.bodySmall, color: colors.textSecondary, marginTop: 4 },
-  time: { ...typography.caption, color: colors.textLight, marginTop: 4 },
-  dot: { width: 10, height: 10, backgroundColor: colors.primary, borderRadius: 5 },
-  emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xxl, paddingHorizontal: spacing.lg },
+  unreadText: { 
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  message: { 
+    ...typography.bodySmall, 
+    color: colors.textSecondary, 
+    marginTop: spacing.xs,
+  },
+  time: { 
+    ...typography.caption, 
+    color: colors.textLight, 
+    marginTop: spacing.xs,
+  },
+  unreadDot: { 
+    width: 10, 
+    height: 10, 
+    backgroundColor: colors.primary, 
+    borderRadius: 5,
+    marginLeft: spacing.sm,
+  },
+  emptyContainer: { 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    paddingVertical: spacing.xxl, 
+    paddingHorizontal: spacing.lg,
+  },
   emptyIcon: { fontSize: 64, marginBottom: spacing.md },
-  emptyTitle: { ...typography.h3, color: colors.text, marginBottom: spacing.sm, textAlign: 'center' },
-  emptyText: { ...typography.body, color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.md },
-  retryButton: { backgroundColor: colors.primary, paddingVertical: spacing.md, paddingHorizontal: spacing.xl, borderRadius: 8, marginTop: spacing.sm },
+  emptyTitle: { 
+    ...typography.h3, 
+    color: colors.text, 
+    marginBottom: spacing.sm, 
+    textAlign: 'center',
+  },
+  emptyText: { 
+    ...typography.body, 
+    color: colors.textSecondary, 
+    textAlign: 'center', 
+    marginBottom: spacing.md,
+  },
+  retryButton: { 
+    backgroundColor: colors.primary, 
+    paddingVertical: spacing.md, 
+    paddingHorizontal: spacing.xl, 
+    borderRadius: borderRadius.md, 
+    marginTop: spacing.sm,
+  },
   retryText: { ...typography.body, color: colors.white, fontWeight: '600' },
 });

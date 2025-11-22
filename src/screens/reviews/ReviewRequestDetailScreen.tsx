@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { reviewService, ReviewRequest } from '../../services/reviewService';
 import Card from '../../components/Card';
 import Loading from '../../components/Loading';
-import { colors, spacing, typography, shadows } from '../../styles/theme';
+import ScreenContainer from '../../components/ScreenContainer';
+import { colors, spacing, typography, shadows, borderRadius } from '../../styles/theme';
 
 export default function ReviewRequestDetailScreen({ route, navigation }: any) {
   const { id } = route.params || {};
@@ -29,8 +30,23 @@ export default function ReviewRequestDetailScreen({ route, navigation }: any) {
   if (loading) return <Loading fullScreen message="Loading review request..." />;
   if (!item) return null;
 
+  const getStatusIcon = () => {
+    if (item.status === 'pending') return '⏳';
+    if (item.status === 'rejected') return '❌';
+    return '✅';
+  };
+
+  const getStatusColor = () => {
+    if (item.status === 'pending') return colors.warning;
+    if (item.status === 'rejected') return colors.danger;
+    return colors.success;
+  };
+
   return (
-    <ScrollView style={styles.container}>
+    <ScreenContainer
+      backgroundColor={colors.backgroundGray}
+      withKeyboardAvoid={false}
+    >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backText}>← Back</Text>
@@ -39,36 +55,48 @@ export default function ReviewRequestDetailScreen({ route, navigation }: any) {
         <View style={styles.spacer} />
       </View>
 
-      <Card style={{ margin: spacing.lg }}>
-        <Text style={styles.label}>Status</Text>
-        <Text style={[
-          styles.value, 
-          { color: 
-            item.status === 'pending' ? colors.warning : 
-            item.status === 'rejected' ? colors.danger : 
-            colors.success 
-          }
-        ]}>
-          {item.status}
-        </Text>
-
-        {item.comment ? (
-          <>
-            <Text style={styles.label}>
-              {item.status === 'rejected' ? 'Rejection Reason' : 'Dermatologist Review'}
+      <Card style={styles.statusCard}>
+        <View style={styles.statusHeader}>
+          <View style={[styles.statusIconContainer, { backgroundColor: getStatusColor() + '20' }]}>
+            <Text style={styles.statusIconLarge}>{getStatusIcon()}</Text>
+          </View>
+          <View style={styles.statusTextContainer}>
+            <Text style={styles.statusLabel}>Status</Text>
+            <Text style={[styles.statusValue, { color: getStatusColor() }]}>
+              {item.status.toUpperCase()}
             </Text>
-            <Text style={styles.value}>{item.comment}</Text>
-          </>
-        ) : (
-          <Text style={styles.pendingNote}>Awaiting dermatologist review...</Text>
-        )}
+          </View>
+        </View>
       </Card>
-    </ScrollView>
+
+      {item.comment ? (
+        <Card style={styles.commentCard}>
+          <View style={styles.commentHeader}>
+            <Text style={styles.commentIcon}>
+              {item.status === 'rejected' ? '❌' : '👨‍⚕️'}
+            </Text>
+            <Text style={styles.commentTitle}>
+              {item.status === 'rejected' ? 'Rejection Reason' : 'Expert Review'}
+            </Text>
+          </View>
+          <View style={styles.commentContent}>
+            <Text style={styles.commentText}>{item.comment}</Text>
+          </View>
+        </Card>
+      ) : (
+        <Card style={styles.pendingCard}>
+          <Text style={styles.pendingIcon}>⏳</Text>
+          <Text style={styles.pendingTitle}>Review Pending</Text>
+          <Text style={styles.pendingText}>
+            Your request is being reviewed by the dermatologist. You'll receive a notification once completed.
+          </Text>
+        </Card>
+      )}
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.backgroundGray },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -79,9 +107,41 @@ const styles = StyleSheet.create({
   },
   backButton: { padding: spacing.sm },
   backText: { ...typography.body, color: colors.primary, fontWeight: '600' },
-  title: { ...typography.h2, color: colors.text },
+  title: { ...typography.h2, color: colors.text, fontWeight: '700' },
   spacer: { width: 60 },
-  label: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.md },
-  value: { ...typography.body, color: colors.text, marginTop: spacing.xs },
-  pendingNote: { ...typography.bodySmall, color: colors.textSecondary, marginTop: spacing.lg },
+  statusCard: { margin: spacing.lg, padding: spacing.xl },
+  statusHeader: { flexDirection: 'row', alignItems: 'center' },
+  statusIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  statusIconLarge: { fontSize: 32 },
+  statusTextContainer: { flex: 1 },
+  statusLabel: { ...typography.caption, color: colors.textSecondary, marginBottom: 4 },
+  statusValue: { ...typography.h2, fontWeight: '700', letterSpacing: 0.5 },
+  commentCard: { margin: spacing.lg, marginTop: 0, padding: spacing.xl },
+  commentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  commentIcon: { fontSize: 28, marginRight: spacing.sm },
+  commentTitle: { ...typography.h3, color: colors.text, fontWeight: '700' },
+  commentContent: {
+    backgroundColor: colors.backgroundGray,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+  },
+  commentText: { ...typography.body, color: colors.text, lineHeight: 24 },
+  pendingCard: { margin: spacing.lg, marginTop: 0, padding: spacing.xl, alignItems: 'center' },
+  pendingIcon: { fontSize: 64, marginBottom: spacing.md },
+  pendingTitle: { ...typography.h3, color: colors.text, fontWeight: '700', marginBottom: spacing.sm },
+  pendingText: { ...typography.body, color: colors.textSecondary, textAlign: 'center', lineHeight: 24 },
 });

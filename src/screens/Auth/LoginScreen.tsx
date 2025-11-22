@@ -4,15 +4,13 @@ import {
   Text,
   StyleSheet,
   Alert,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   TouchableOpacity,
 } from "react-native";
 import { authService } from "../../services/authService";
-import Button from "../../components/Button";
-import Input from "../../components/Input";
-import { colors, spacing, typography } from "../../styles/theme";
+import CustomButton from "../../components/CustomButton";
+import CustomInput from "../../components/CustomInput";
+import ScreenContainer from "../../components/ScreenContainer";
+import { colors, spacing, typography, shadows } from "../../styles/theme";
 
 export default function LoginScreen({ navigation }: any) {
   const [emailOrUsername, setEmailOrUsername] = useState("");
@@ -58,87 +56,95 @@ export default function LoginScreen({ navigation }: any) {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
+    <ScreenContainer
+      backgroundColor={colors.backgroundGray}
+      contentContainerStyle={styles.scrollContent}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.header}>
+      <View style={styles.header}>
+        <View style={styles.logoContainer}>
           <Text style={styles.logo}>🔬</Text>
-          <Text style={styles.title}>FacialDerma AI</Text>
-          <Text style={styles.subtitle}>Welcome back! Please login to continue</Text>
         </View>
+        <Text style={styles.title}>Welcome Back</Text>
+        <Text style={styles.subtitle}>Sign in to continue to FacialDerma AI</Text>
+      </View>
 
-        <View style={styles.form}>
-          <Input
-            label="Email or Username"
-            placeholder="Enter your email or username"
-            value={emailOrUsername}
-            onChangeText={(text) => {
-              setEmailOrUsername(text);
-              setErrors({ ...errors, emailOrUsername: "" });
-            }}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            error={errors.emailOrUsername}
-          />
+      <View style={styles.form}>
+        <CustomInput
+          label="Email or Username"
+          placeholder="Enter your email or username"
+          value={emailOrUsername}
+          onChangeText={(text) => {
+            setEmailOrUsername(text);
+            setErrors({ ...errors, emailOrUsername: "" });
+          }}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          leftIcon="👤"
+          error={errors.emailOrUsername}
+        />
 
-          <Input
-            label="Password"
-            placeholder="Enter your password"
-            value={password}
-            onChangeText={(text) => {
-              setPassword(text);
-              setErrors({ ...errors, password: "" });
-            }}
-            secureTextEntry
-            error={errors.password}
-          />
+        <CustomInput
+          label="Password"
+          placeholder="Enter your password"
+          value={password}
+          onChangeText={(text) => {
+            setPassword(text);
+            setErrors({ ...errors, password: "" });
+          }}
+          secureTextEntry
+          leftIcon="🔒"
+          error={errors.password}
+        />
 
-          <Button
-            title="Login"
-            onPress={handleLogin}
-            loading={loading}
-            style={styles.loginButton}
-          />
+        <CustomButton
+          title="Sign In"
+          onPress={handleLogin}
+          loading={loading}
+          fullWidth
+          size="large"
+          style={styles.loginButton}
+        />
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
-              <Text style={styles.link}>Sign Up</Text>
-            </TouchableOpacity>
-          </View>
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Don't have an account? </Text>
+          <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
+            <Text style={styles.link}>Sign Up</Text>
+          </TouchableOpacity>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   scrollContent: {
-    flexGrow: 1,
     justifyContent: "center",
-    padding: spacing.lg,
+    padding: spacing.xl,
+    paddingTop: spacing.xxl * 2,
   },
   header: {
     alignItems: "center",
-    marginBottom: spacing.xl,
+    marginBottom: spacing.xxl,
+  },
+  logoContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: colors.primaryLight,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: spacing.lg,
+    ...shadows.medium,
   },
   logo: {
-    fontSize: 64,
-    marginBottom: spacing.md,
+    fontSize: 56,
   },
   title: {
     ...typography.h1,
-    color: colors.primary,
+    color: colors.text,
+    fontWeight: "700",
     marginBottom: spacing.xs,
+    letterSpacing: -0.5,
   },
   subtitle: {
     ...typography.body,
@@ -149,13 +155,13 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   loginButton: {
-    marginTop: spacing.md,
+    marginTop: spacing.lg,
   },
   footer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: spacing.lg,
+    marginTop: spacing.xxl,
   },
   footerText: {
     ...typography.body,
@@ -164,6 +170,6 @@ const styles = StyleSheet.create({
   link: {
     ...typography.body,
     color: colors.primary,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 });

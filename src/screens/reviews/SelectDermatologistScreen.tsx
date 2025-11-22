@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { reviewService, Dermatologist } from '../../services/reviewService';
 import Card from '../../components/Card';
-import Button from '../../components/Button';
+import CustomButton from '../../components/CustomButton';
+import CustomInput from '../../components/CustomInput';
 import { colors, spacing, typography, shadows, borderRadius } from '../../styles/theme';
 
 export default function SelectDermatologistScreen({ route, navigation }: any) {
@@ -59,7 +60,7 @@ export default function SelectDermatologistScreen({ route, navigation }: any) {
           <Text style={styles.name}>{item.username}</Text>
           <Text style={styles.email}>{item.email}</Text>
         </View>
-        <Button title="Request Review" onPress={() => requestReview(item)} size="small" />
+        <CustomButton title="Request" onPress={() => requestReview(item)} size="small" />
       </View>
     </Card>
   );
@@ -74,16 +75,22 @@ export default function SelectDermatologistScreen({ route, navigation }: any) {
         <View style={styles.spacer} />
       </View>
 
-      <Card style={styles.searchCard}>
-        <TextInput
+      <View style={styles.searchContainer}>
+        <CustomInput
           placeholder="Search by name or email"
-          placeholderTextColor={colors.textLight}
-          style={styles.input}
           value={q}
           onChangeText={setQ}
+          leftIcon="🔍"
+          containerStyle={styles.searchInput}
         />
-        <Button title={loading ? 'Searching...' : 'Search'} onPress={search} />
-      </Card>
+        <CustomButton
+          title={loading ? 'Searching...' : 'Search'}
+          icon="🔍"
+          onPress={search}
+          loading={loading}
+          fullWidth
+        />
+      </View>
 
       <FlatList
         data={data}
@@ -120,15 +127,8 @@ const styles = StyleSheet.create({
   backText: { ...typography.body, color: colors.primary, fontWeight: '600' },
   title: { ...typography.h2, color: colors.text },
   spacer: { width: 60 },
-  searchCard: { margin: spacing.lg, padding: spacing.lg },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    color: colors.text,
-  },
+  searchContainer: { padding: spacing.lg },
+  searchInput: { marginBottom: 0 },
   item: { marginBottom: spacing.md },
   row: { flexDirection: 'row', alignItems: 'center' },
   flex1: { flex: 1 },

@@ -4,15 +4,13 @@ import {
   Text,
   StyleSheet,
   Alert,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   TouchableOpacity,
 } from "react-native";
 import { authService } from "../../services/authService";
-import Button from "../../components/Button";
-import Input from "../../components/Input";
-import { colors, spacing, typography } from "../../styles/theme";
+import CustomButton from "../../components/CustomButton";
+import CustomInput from "../../components/CustomInput";
+import ScreenContainer from "../../components/ScreenContainer";
+import { colors, spacing, typography, shadows } from "../../styles/theme";
 
 export default function SignupScreen({ navigation }: any) {
   const [username, setUsername] = useState("");
@@ -81,111 +79,123 @@ export default function SignupScreen({ navigation }: any) {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
+    <ScreenContainer
+      backgroundColor={colors.backgroundGray}
+      contentContainerStyle={styles.scrollContent}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.header}>
+      <View style={styles.header}>
+        <View style={styles.logoContainer}>
           <Text style={styles.logo}>🔬</Text>
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Join FacialDerma AI today</Text>
         </View>
+        <Text style={styles.title}>Create Account</Text>
+        <Text style={styles.subtitle}>Join FacialDerma AI and start your journey</Text>
+      </View>
 
-        <View style={styles.form}>
-          <Input
-            label="Username"
-            placeholder="Choose a username"
-            value={username}
-            onChangeText={(text) => {
-              setUsername(text);
-              setErrors({ ...errors, username: "" });
-            }}
-            autoCapitalize="none"
-            error={errors.username}
-          />
+      <View style={styles.form}>
+        <CustomInput
+          label="Username"
+          placeholder="Choose a username"
+          value={username}
+          onChangeText={(text) => {
+            setUsername(text);
+            setErrors({ ...errors, username: "" });
+          }}
+          autoCapitalize="none"
+          leftIcon="👤"
+          error={errors.username}
+          helperText="No spaces allowed"
+        />
 
-          <Input
-            label="Email"
-            placeholder="Enter your email"
-            value={email}
-            onChangeText={(text) => {
-              setEmail(text);
-              setErrors({ ...errors, email: "" });
-            }}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            error={errors.email}
-          />
+        <CustomInput
+          label="Email"
+          placeholder="Enter your email"
+          value={email}
+          onChangeText={(text) => {
+            setEmail(text);
+            setErrors({ ...errors, email: "" });
+          }}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          leftIcon="✉️"
+          error={errors.email}
+        />
 
-          <Input
-            label="Password"
-            placeholder="Create a password"
-            value={password}
-            onChangeText={(text) => {
-              setPassword(text);
-              setErrors({ ...errors, password: "" });
-            }}
-            secureTextEntry
-            error={errors.password}
-          />
+        <CustomInput
+          label="Password"
+          placeholder="Create a password"
+          value={password}
+          onChangeText={(text) => {
+            setPassword(text);
+            setErrors({ ...errors, password: "" });
+          }}
+          secureTextEntry
+          leftIcon="🔒"
+          error={errors.password}
+          helperText="At least 6 characters"
+        />
 
-          <Input
-            label="Confirm Password"
-            placeholder="Confirm your password"
-            value={confirmPassword}
-            onChangeText={(text) => {
-              setConfirmPassword(text);
-              setErrors({ ...errors, confirmPassword: "" });
-            }}
-            secureTextEntry
-            error={errors.confirmPassword}
-          />
+        <CustomInput
+          label="Confirm Password"
+          placeholder="Confirm your password"
+          value={confirmPassword}
+          onChangeText={(text) => {
+            setConfirmPassword(text);
+            setErrors({ ...errors, confirmPassword: "" });
+          }}
+          secureTextEntry
+          leftIcon="✔️"
+          error={errors.confirmPassword}
+        />
 
-          <Button
-            title="Sign Up"
-            onPress={handleSignup}
-            loading={loading}
-            style={styles.signupButton}
-          />
+        <CustomButton
+          title="Create Account"
+          onPress={handleSignup}
+          loading={loading}
+          fullWidth
+          size="large"
+          style={styles.signupButton}
+        />
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-              <Text style={styles.link}>Login</Text>
-            </TouchableOpacity>
-          </View>
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Already have an account? </Text>
+          <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+            <Text style={styles.link}>Sign In</Text>
+          </TouchableOpacity>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   scrollContent: {
-    flexGrow: 1,
     justifyContent: "center",
-    padding: spacing.lg,
+    padding: spacing.xl,
+    paddingTop: spacing.xxl * 2,
   },
   header: {
     alignItems: "center",
-    marginBottom: spacing.xl,
+    marginBottom: spacing.xxl,
+  },
+  logoContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: colors.primaryLight,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: spacing.lg,
+    ...shadows.medium,
   },
   logo: {
-    fontSize: 64,
-    marginBottom: spacing.md,
+    fontSize: 56,
   },
   title: {
     ...typography.h1,
-    color: colors.primary,
+    color: colors.text,
+    fontWeight: "700",
     marginBottom: spacing.xs,
+    letterSpacing: -0.5,
   },
   subtitle: {
     ...typography.body,
@@ -196,13 +206,13 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   signupButton: {
-    marginTop: spacing.md,
+    marginTop: spacing.lg,
   },
   footer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: spacing.lg,
+    marginTop: spacing.xxl,
   },
   footerText: {
     ...typography.body,
@@ -211,6 +221,6 @@ const styles = StyleSheet.create({
   link: {
     ...typography.body,
     color: colors.primary,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 });
