@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, RefreshControl, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, RefreshControl } from 'react-native';
 import Card from '../../components/Card';
 import ScreenContainer from '../../components/ScreenContainer';
 import { colors, spacing, typography, shadows, borderRadius } from '../../styles/theme';
@@ -101,7 +101,6 @@ export default function NotificationsScreen({ navigation }: any) {
         </View>
       </TouchableOpacity>
       <TouchableOpacity
-        onPress={() => handleDelete(item)}
         style={styles.deleteButton}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
