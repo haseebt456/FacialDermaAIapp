@@ -18,7 +18,11 @@ export const notificationService = {
       const response = await api.get(`/api/notifications`, {
         params: { unreadOnly, limit, offset },
       });
-      return { success: true, data: response.data as NotificationItem[] };
+      // Backend may return array directly or wrapped in { notifications: [...] }
+      const notifications = Array.isArray(response.data) 
+        ? response.data 
+        : (response.data?.notifications || []);
+      return { success: true, data: notifications };
     } catch (error: any) {
       let message = 'Unable to load notifications. Please try again.';
       if (error.response?.data?.error) {

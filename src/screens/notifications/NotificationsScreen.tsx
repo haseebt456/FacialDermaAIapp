@@ -9,10 +9,20 @@ export default function NotificationsScreen({ navigation }: any) {
   const { refresh } = useNotifications();
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
+    setLoading(true);
+    setError(null);
     const res = await notificationService.listNotifications(false, 50, 0);
-    if (res.success) setItems(res.data || []);
+    setLoading(false);
+    if (res.success) {
+      setItems(res.data || []);
+    } else {
+      setError(res.error || 'Failed to load notifications');
+      setItems([]);
+    }
     await refresh();
   };
 
@@ -76,6 +86,30 @@ export default function NotificationsScreen({ navigation }: any) {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            {loading ? (
+              <Text style={styles.emptyText}>Loading notifications...</Text>
+            ) : error ? (
+              <>
+                <Text style={styles.emptyIcon}>⚠️</Text>
+                <Text style={styles.emptyTitle}>Could Not Load Notifications</Text>
+                <Text style={styles.emptyText}>{error}</Text>
+                <TouchableOpacity style={styles.retryButton} onPress={load}>
+                  <Text style={styles.retryText}>Try Again</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={styles.emptyIcon}>🔔</Text>
+                <Text style={styles.emptyTitle}>No Notifications</Text>
+                <Text style={styles.emptyText}>
+                  You're all caught up! Notifications will appear here when dermatologists review your cases.
+                </Text>
+              </>
+            )}
+          </View>
+        }
       />
     </View>
   );
@@ -103,4 +137,10 @@ const styles = StyleSheet.create({
   message: { ...typography.bodySmall, color: colors.textSecondary, marginTop: 4 },
   time: { ...typography.caption, color: colors.textLight, marginTop: 4 },
   dot: { width: 10, height: 10, backgroundColor: colors.primary, borderRadius: 5 },
+  emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xxl, paddingHorizontal: spacing.lg },
+  emptyIcon: { fontSize: 64, marginBottom: spacing.md },
+  emptyTitle: { ...typography.h3, color: colors.text, marginBottom: spacing.sm, textAlign: 'center' },
+  emptyText: { ...typography.body, color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.md },
+  retryButton: { backgroundColor: colors.primary, paddingVertical: spacing.md, paddingHorizontal: spacing.xl, borderRadius: 8, marginTop: spacing.sm },
+  retryText: { ...typography.body, color: colors.white, fontWeight: '600' },
 });
