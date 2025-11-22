@@ -8,6 +8,7 @@ import MyReviewRequestsScreen from "../screens/reviews/MyReviewRequestsScreen";
 import SelectDermatologistScreen from "../screens/reviews/SelectDermatologistScreen";
 import ReviewRequestDetailScreen from "../screens/reviews/ReviewRequestDetailScreen";
 import NotificationsScreen from "../screens/notifications/NotificationsScreen";
+import AnalysisDetailScreen from "../screens/AnalysisDetailScreen";
 
 const Stack = createStackNavigator();
 
@@ -22,6 +23,7 @@ export default function MainStack() {
       <Stack.Screen name="SelectDermatologist" component={SelectDermatologistScreen} />
       <Stack.Screen name="ReviewRequestDetail" component={ReviewRequestDetailScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="AnalysisDetail" component={AnalysisDetailScreen} />
     </Stack.Navigator>
   );
 }
