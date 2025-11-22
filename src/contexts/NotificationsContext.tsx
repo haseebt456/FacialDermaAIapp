@@ -19,13 +19,25 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
     const res = await notificationService.listNotifications(true, 50, 0);
-    if (res.success && res.data) {
-      setUnreadCount(res.data.length);
+    if (res.success) {
+      // Use unreadCount from backend if available, otherwise count unread items
+      const count = res.unreadCount !== undefined ? res.unreadCount : (res.data?.length || 0);
+      setUnreadCount(count);
     }
   };
 
   useEffect(() => {
     refresh();
+    
+    // Poll for new notifications every 30 seconds when app is active
+    const interval = setInterval(async () => {
+      const token = await AsyncStorage.getItem('authToken');
+      if (token) {
+        refresh();
+      }
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(interval);
   }, [])
 
   return (
