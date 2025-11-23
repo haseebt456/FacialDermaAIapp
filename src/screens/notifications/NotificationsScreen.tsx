@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList, RefreshControl } fr
 import Card from '../../components/Card';
 import ScreenContainer from '../../components/ScreenContainer';
 import { colors, spacing, typography, shadows, borderRadius } from '../../styles/theme';
+import { bottomNavHeight } from '../../components/BottomNav';
 import { notificationService, NotificationItem } from '../../services/notificationService';
 import { useNotifications } from '../../contexts/NotificationsContext';
 
@@ -80,6 +81,13 @@ export default function NotificationsScreen({ navigation }: any) {
     return date.toLocaleDateString();
   };
 
+  const deleteNotification = async (id: string) => {
+    // Optimistic update
+    setItems(prev => prev.filter(n => n.id !== id));
+    await notificationService.deleteNotification(id);
+    await refresh();
+  };
+
   const renderItem = ({ item }: { item: NotificationItem }) => (
     <Card style={!item.isRead ? styles.unreadCard : styles.card}>
       <TouchableOpacity
@@ -103,6 +111,7 @@ export default function NotificationsScreen({ navigation }: any) {
       <TouchableOpacity
         style={styles.deleteButton}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        onPress={() => deleteNotification(item.id)}
       >
         <Text style={styles.deleteText}>✕</Text>
       </TouchableOpacity>
@@ -123,7 +132,7 @@ export default function NotificationsScreen({ navigation }: any) {
         data={items}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        contentContainerStyle={{ padding: spacing.lg }}
+        contentContainerStyle={{ padding: spacing.lg, paddingBottom: bottomNavHeight + spacing.xl }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }

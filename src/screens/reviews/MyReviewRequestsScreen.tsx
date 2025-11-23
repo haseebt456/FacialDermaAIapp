@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList, RefreshControl } fr
 import { reviewService, ReviewRequest } from '../../services/reviewService';
 import Card from '../../components/Card';
 import { colors, spacing, typography, shadows, borderRadius } from '../../styles/theme';
+import { bottomNavHeight } from '../../components/BottomNav';
 
 export default function MyReviewRequestsScreen({ navigation }: any) {
   const [items, setItems] = useState<ReviewRequest[]>([]);
@@ -86,7 +87,7 @@ export default function MyReviewRequestsScreen({ navigation }: any) {
         data={items}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        contentContainerStyle={{ padding: spacing.lg }}
+        contentContainerStyle={{ padding: spacing.lg, paddingBottom: bottomNavHeight + spacing.xl }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -118,7 +119,7 @@ export default function MyReviewRequestsScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.backgroundGray, paddingBottom: 88 },
+  container: { flex: 1, backgroundColor: colors.backgroundGray },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

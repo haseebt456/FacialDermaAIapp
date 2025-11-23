@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Animated } from 'react-native';
 import { colors, spacing, typography, shadows } from '../styles/theme';
 
 interface BottomNavProps {
@@ -15,8 +15,9 @@ export default function BottomNav({ navigationRef }: BottomNavProps) {
 
   const getActive = (key: string) => {
     if (!currentRouteName) return false;
-    if (key === 'Home') return ['Home'].includes(currentRouteName);
+    if (key === 'Home') return ['Home', 'History'].includes(currentRouteName);
     if (key === 'Prediction') return ['Prediction', 'AnalysisDetail'].includes(currentRouteName);
+    if (key === 'Reviews') return ['MyReviewRequests', 'ReviewRequestDetail', 'SelectDermatologist'].includes(currentRouteName);
     if (key === 'Profile') return ['Profile'].includes(currentRouteName);
     return false;
   };
@@ -42,6 +43,12 @@ export default function BottomNav({ navigationRef }: BottomNavProps) {
           onPress={() => handlePress('Prediction')}
         />
         <NavItem
+          label="Reviews"
+          icon="📝"
+          active={getActive('Reviews')}
+          onPress={() => handlePress('MyReviewRequests')}
+        />
+        <NavItem
           label="Profile"
           icon="👤"
           active={getActive('Profile')}
@@ -60,12 +67,54 @@ interface NavItemProps {
 }
 
 function NavItem({ label, icon, active, onPress }: NavItemProps) {
+  const animValue = useRef(new Animated.Value(active ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.timing(animValue, {
+      toValue: active ? 1 : 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  }, [active, animValue]);
+
+  const scale = animValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.1],
+  });
+
+  const backgroundColor = animValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [colors.backgroundGray, colors.primaryLight],
+  });
+
+  const borderWidth = animValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 2],
+  });
+
   return (
     <TouchableOpacity style={styles.item} onPress={onPress} activeOpacity={0.7}>
-      <View style={[styles.iconCircle, active && styles.iconCircleActive]}>
+      <Animated.View
+        style={[
+          styles.iconCircle,
+          {
+            backgroundColor,
+            borderWidth,
+            borderColor: colors.primary,
+            transform: [{ scale }],
+          },
+        ]}
+      >
         <Text style={styles.icon}>{icon}</Text>
-      </View>
-      <Text style={[styles.label, active && styles.labelActive]}>{label}</Text>
+      </Animated.View>
+      <Animated.Text
+        style={[
+          styles.label,
+          active && styles.labelActive,
+        ]}
+      >
+        {label}
+      </Animated.Text>
     </TouchableOpacity>
   );
 }

@@ -1,9 +1,10 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const LOCAL_IP = '192.168.1.100'
 // Update this based on your environment
 const BASE_URL = __DEV__ 
-  ? 'http://10.0.2.2:5000'  // Android emulator
+  ? `http://${LOCAL_IP}:5000`  // Android emulator
   // ? 'http://localhost:5000'  // iOS simulator - uncomment for iOS testing
   : 'https://your-production-url.com';
 

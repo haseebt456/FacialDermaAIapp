@@ -8,7 +8,8 @@ import {
   ViewStyle,
   StatusBar,
 } from 'react-native';
-import { colors } from '../styles/theme';
+import { colors, spacing } from '../styles/theme';
+import { bottomNavHeight } from './BottomNav';
 
 interface ScreenContainerProps {
   children: React.ReactNode;
@@ -20,7 +21,7 @@ interface ScreenContainerProps {
   withBottomPadding?: boolean; // reserve space for persistent bottom nav
 }
 
-const BOTTOM_NAV_HEIGHT = 88; // includes safe-area approximation
+const BOTTOM_NAV_HEIGHT = bottomNavHeight + spacing.md; // reserve space for BottomNav + a little spacing
 
 export default function ScreenContainer({
   children,
@@ -34,7 +35,11 @@ export default function ScreenContainer({
   const Container = scrollable ? ScrollView : View;
   const containerProps = scrollable
     ? {
-        contentContainerStyle: [styles.scrollContent, contentContainerStyle],
+        contentContainerStyle: [
+          styles.scrollContent,
+          withBottomPadding && { paddingBottom: BOTTOM_NAV_HEIGHT },
+          contentContainerStyle,
+        ],
         showsVerticalScrollIndicator: false,
         keyboardShouldPersistTaps: 'handled' as const,
       }
@@ -44,7 +49,7 @@ export default function ScreenContainer({
     <Container
       style={[
         styles.container,
-        { backgroundColor, paddingBottom: (withBottomPadding ? BOTTOM_NAV_HEIGHT : 0) as number },
+        { backgroundColor },
         style,
       ]}
       {...containerProps}

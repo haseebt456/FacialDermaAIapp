@@ -4,7 +4,8 @@ import { reviewService, Dermatologist } from '../../services/reviewService';
 import Card from '../../components/Card';
 import CustomButton from '../../components/CustomButton';
 import CustomInput from '../../components/CustomInput';
-import { colors, spacing, typography, shadows, borderRadius } from '../../styles/theme';
+import { colors, spacing, typography, shadows } from '../../styles/theme';
+import { bottomNavHeight } from '../../components/BottomNav';
 
 export default function SelectDermatologistScreen({ route, navigation }: any) {
   const { predictionId } = route.params || {};
@@ -96,7 +97,7 @@ export default function SelectDermatologistScreen({ route, navigation }: any) {
         data={data}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        contentContainerStyle={{ padding: spacing.lg }}
+        contentContainerStyle={{ padding: spacing.lg, paddingBottom: bottomNavHeight + spacing.xl }}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyIcon}>👨‍⚕️</Text>
@@ -114,7 +115,7 @@ export default function SelectDermatologistScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.backgroundGray, paddingBottom: 88 },
+  container: { flex: 1, backgroundColor: colors.backgroundGray },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

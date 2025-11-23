@@ -12,6 +12,7 @@ import { predictionService, Prediction } from "../services/predictionService";
 import Card from "../components/Card";
 import Loading from "../components/Loading";
 import CustomButton from "../components/CustomButton";
+import ScreenContainer from "../components/ScreenContainer";
 import { colors, spacing, typography, shadows, borderRadius } from "../styles/theme";
 
 export default function HistoryScreen({ navigation }: any) {
@@ -106,7 +107,7 @@ export default function HistoryScreen({ navigation }: any) {
   }
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer scrollable={false} backgroundColor={colors.backgroundGray}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backText}>← Back</Text>
@@ -140,16 +141,12 @@ export default function HistoryScreen({ navigation }: any) {
           }
         />
       )}
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.backgroundGray,
-    paddingBottom: 88,
-  },
+  // Removed manual container; ScreenContainer handles bottom padding.
   header: {
     flexDirection: "row",
     justifyContent: "space-between",

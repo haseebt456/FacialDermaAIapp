@@ -48,4 +48,16 @@ export const notificationService = {
       };
     }
   },
+
+  deleteNotification: async (id: string) => {
+    try {
+      await api.delete(`/api/notifications/${id}`);
+      return { success: true };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to delete notification',
+      };
+    }
+  },
 };
