@@ -1,7 +1,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const LOCAL_IP = '192.168.1.100'
+const LOCAL_IP = '192.168.100.8'
 // Update this based on your environment
 const BASE_URL = __DEV__ 
   ? `http://${LOCAL_IP}:5000`  // Android emulator

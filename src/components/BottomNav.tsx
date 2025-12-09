@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, Animated } from 'react-native';
 import { colors, spacing, typography, shadows } from '../styles/theme';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 interface BottomNavProps {
   navigationRef: any;
@@ -32,25 +33,25 @@ export default function BottomNav({ navigationRef }: BottomNavProps) {
       <View style={styles.bar}>
         <NavItem
           label="Home"
-          icon="🏠"
+          iconName="home-outline"
           active={getActive('Home')}
           onPress={() => handlePress('Home')}
         />
         <NavItem
           label="Analyze"
-          icon="🔬"
+          iconName="search-outline"
           active={getActive('Prediction')}
           onPress={() => handlePress('Prediction')}
         />
         <NavItem
           label="Reviews"
-          icon="📝"
+          iconName="document-text-outline"
           active={getActive('Reviews')}
           onPress={() => handlePress('MyReviewRequests')}
         />
         <NavItem
           label="Profile"
-          icon="👤"
+          iconName="person-outline"
           active={getActive('Profile')}
           onPress={() => handlePress('Profile')}
         />
@@ -61,12 +62,12 @@ export default function BottomNav({ navigationRef }: BottomNavProps) {
 
 interface NavItemProps {
   label: string;
-  icon: string;
+  iconName: string;
   active: boolean;
   onPress: () => void;
 }
 
-function NavItem({ label, icon, active, onPress }: NavItemProps) {
+function NavItem({ label, iconName, active, onPress }: NavItemProps) {
   const animValue = useRef(new Animated.Value(active ? 1 : 0)).current;
 
   useEffect(() => {
@@ -92,6 +93,9 @@ function NavItem({ label, icon, active, onPress }: NavItemProps) {
     outputRange: [0, 2],
   });
 
+  // Use static color to avoid passing animated interpolation to Icon (frozen props error)
+  const iconColor = active ? colors.primary : colors.textSecondary;
+
   return (
     <TouchableOpacity style={styles.item} onPress={onPress} activeOpacity={0.7}>
       <Animated.View
@@ -105,16 +109,16 @@ function NavItem({ label, icon, active, onPress }: NavItemProps) {
           },
         ]}
       >
-        <Text style={styles.icon}>{icon}</Text>
+        <Icon name={iconName} size={22} color={iconColor} />
       </Animated.View>
-      <Animated.Text
+      <Text
         style={[
           styles.label,
           active && styles.labelActive,
         ]}
       >
         {label}
-      </Animated.Text>
+      </Text>
     </TouchableOpacity>
   );
 }

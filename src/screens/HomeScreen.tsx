@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
 } from "react-native";
 import { authService } from "../services/authService";
 import Card from "../components/Card";
@@ -12,6 +11,7 @@ import ScreenContainer from "../components/ScreenContainer";
 import CustomButton from "../components/CustomButton";
 import { colors, spacing, typography, shadows } from "../styles/theme";
 import { useNotifications } from "../contexts/NotificationsContext";
+import Icon from "react-native-vector-icons/Ionicons";
 
 export default function HomeScreen({ navigation }: any) {
   const [user, setUser] = useState<any>(null);
@@ -24,24 +24,6 @@ export default function HomeScreen({ navigation }: any) {
   const loadUser = async () => {
     const userData = await authService.getStoredUser();
     setUser(userData);
-  };
-
-  const handleLogout = () => {
-    Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Logout",
-          style: "destructive",
-          onPress: async () => {
-            await authService.logout();
-            // The AppNavigator will automatically switch to Auth stack when it detects no token
-          },
-        },
-      ]
-    );
   };
 
   return (
@@ -66,7 +48,7 @@ export default function HomeScreen({ navigation }: any) {
             onPress={() => navigation.navigate('Notifications')}
             style={styles.bellButton}
           >
-            <Text style={styles.bellIcon}>🔔</Text>
+            <Icon name="notifications-outline" size={28} color={colors.primary} />
             {unreadCount > 0 && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{unreadCount}</Text>
@@ -145,20 +127,6 @@ export default function HomeScreen({ navigation }: any) {
             </View>
             <Text style={styles.gridTitle}>Profile</Text>
             <Text style={styles.gridDescription}>Account settings</Text>
-          </Card>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.gridItem}
-          onPress={handleLogout}
-          activeOpacity={0.7}
-        >
-          <Card style={styles.logoutCard}>
-            <View style={styles.gridIconContainer}>
-              <Text style={styles.gridIcon}>🚪</Text>
-            </View>
-            <Text style={styles.gridTitle}>Logout</Text>
-            <Text style={styles.gridDescription}>Sign out</Text>
           </Card>
         </TouchableOpacity>
       </View>
@@ -308,13 +276,6 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     minHeight: 140,
     justifyContent: "center",
-  },
-  logoutCard: {
-    alignItems: "center",
-    padding: spacing.lg,
-    minHeight: 140,
-    justifyContent: "center",
-    backgroundColor: '#FFF5F5',
   },
   gridIconContainer: {
     width: 56,
