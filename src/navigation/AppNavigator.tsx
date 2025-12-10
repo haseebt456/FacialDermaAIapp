@@ -11,6 +11,7 @@ const RootStack = createStackNavigator();
 
 export default function AppNavigator() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigationRef = useRef<any>(null);
 
@@ -21,7 +22,24 @@ export default function AppNavigator() {
   const checkLogin = async () => {
     try {
       const token = await AsyncStorage.getItem("authToken");
-      setIsLoggedIn(!!token);
+      const userJson = await AsyncStorage.getItem("user");
+      
+      if (token && userJson) {
+        const user = JSON.parse(userJson);
+        setUserRole(user.role);
+        setIsLoggedIn(true);
+        
+        // Navigate to appropriate home screen based on role
+        setTimeout(() => {
+          if (navigationRef.current) {
+            if (user.role === 'dermatologist') {
+              navigationRef.current.navigate('Main', { screen: 'DermatologistHome' });
+            } else {
+              navigationRef.current.navigate('Main', { screen: 'Home' });
+            }
+          }
+        }, 100);
+      }
     } catch (error) {
       console.error("Error checking login status:", error);
     } finally {
@@ -33,8 +51,14 @@ export default function AppNavigator() {
   useEffect(() => {
     const interval = setInterval(async () => {
       const token = await AsyncStorage.getItem("authToken");
+      const userJson = await AsyncStorage.getItem("user");
       const newLoggedInState = !!token;
+      
       if (newLoggedInState !== isLoggedIn) {
+        if (userJson) {
+          const user = JSON.parse(userJson);
+          setUserRole(user.role);
+        }
         setIsLoggedIn(newLoggedInState);
       }
     }, 1000);
@@ -55,7 +79,7 @@ export default function AppNavigator() {
           <RootStack.Screen name="Auth" component={AuthStack} />
         )}
       </RootStack.Navigator>
-      {isLoggedIn && <BottomNav navigationRef={navigationRef} />}
+      {isLoggedIn && <BottomNav navigationRef={navigationRef} userRole={userRole} />}
     </NavigationContainer>
   );
 }
