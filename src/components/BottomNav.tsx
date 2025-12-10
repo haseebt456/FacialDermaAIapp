@@ -5,21 +5,22 @@ import Icon from 'react-native-vector-icons/Ionicons';
 
 interface BottomNavProps {
   navigationRef: any;
+  userRole: string | null;
 }
 
 const NAV_HEIGHT = 72;
 
 export const bottomNavHeight = NAV_HEIGHT;
 
-export default function BottomNav({ navigationRef }: BottomNavProps) {
+export default function BottomNav({ navigationRef, userRole }: BottomNavProps) {
   const currentRouteName = navigationRef.current?.getCurrentRoute()?.name;
 
   const getActive = (key: string) => {
     if (!currentRouteName) return false;
-    if (key === 'Home') return ['Home', 'History'].includes(currentRouteName);
+    if (key === 'Home') return ['Home', 'DermatologistHome', 'History'].includes(currentRouteName);
     if (key === 'Prediction') return ['Prediction', 'AnalysisDetail'].includes(currentRouteName);
-    if (key === 'Reviews') return ['MyReviewRequests', 'ReviewRequestDetail', 'SelectDermatologist'].includes(currentRouteName);
-    if (key === 'Profile') return ['Profile'].includes(currentRouteName);
+    if (key === 'Reviews') return ['MyReviewRequests', 'ReviewRequestDetail', 'SelectDermatologist', 'DermatologistReviews', 'DermatologistReviewDetail'].includes(currentRouteName);
+    if (key === 'Profile') return ['Profile', 'EditProfile', 'ChangePassword'].includes(currentRouteName);
     return false;
   };
 
@@ -27,6 +28,39 @@ export default function BottomNav({ navigationRef }: BottomNavProps) {
     if (!navigationRef.current) return;
     navigationRef.current.navigate(route);
   };
+
+  if (userRole === 'dermatologist') {
+    return (
+      <View style={styles.container} pointerEvents="box-none">
+        <View style={styles.bar}>
+          <NavItem
+            label="Home"
+            iconName="home-outline"
+            active={getActive('Home')}
+            onPress={() => handlePress('DermatologistHome')}
+          />
+          <NavItem
+            label="Reviews"
+            iconName="document-text-outline"
+            active={getActive('Reviews')}
+            onPress={() => handlePress('DermatologistReviews')}
+          />
+          <NavItem
+            label="Notifications"
+            iconName="notifications-outline"
+            active={currentRouteName === 'Notifications'}
+            onPress={() => handlePress('Notifications')}
+          />
+          <NavItem
+            label="Profile"
+            iconName="person-outline"
+            active={getActive('Profile')}
+            onPress={() => handlePress('Profile')}
+          />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container} pointerEvents="box-none">
