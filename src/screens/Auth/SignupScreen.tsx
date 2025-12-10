@@ -17,6 +17,8 @@ export default function SignupScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [license, setLicense] = useState(""); // License for dermatologists
+  const [role, setRole] = useState<'patient' | 'dermatologist'>('patient');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<any>({});
 
@@ -46,6 +48,11 @@ export default function SignupScreen({ navigation }: any) {
     } else if (password !== confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
     }
+
+    // License is required for dermatologists
+    if (role === 'dermatologist' && !license.trim()) {
+      newErrors.license = "License number is required for dermatologists";
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -55,17 +62,29 @@ export default function SignupScreen({ navigation }: any) {
     if (!validate()) return;
 
     setLoading(true);
-    const result = await authService.signup({
+    const signupData: any = {
       username: username.trim(),
       email: email.trim(),
       password,
-    });
+      role,
+    };
+
+    // Add license for dermatologists
+    if (role === 'dermatologist') {
+      signupData.license = license.trim();
+    }
+
+    const result = await authService.signup(signupData);
     setLoading(false);
 
     if (result.success) {
+      const message = role === 'dermatologist'
+        ? "Registration successful! Please verify your email. Your account will be activated after admin approval."
+        : "Registration successful! Please check your email to verify your account.";
+      
       Alert.alert(
         "Success",
-        "Account created successfully! Please login.",
+        message,
         [
           {
             text: "OK",
@@ -92,6 +111,46 @@ export default function SignupScreen({ navigation }: any) {
       </View>
 
       <View style={styles.form}>
+        <View style={styles.roleSelector}>
+          <Text style={styles.roleLabel}>I am a:</Text>
+          <View style={styles.roleButtons}>
+            <TouchableOpacity
+              style={[
+                styles.roleButton,
+                role === 'patient' && styles.roleButtonActive,
+              ]}
+              onPress={() => setRole('patient')}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.roleButtonText,
+                  role === 'patient' && styles.roleButtonTextActive,
+                ]}
+              >
+                👤 Patient
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.roleButton,
+                role === 'dermatologist' && styles.roleButtonActive,
+              ]}
+              onPress={() => setRole('dermatologist')}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.roleButtonText,
+                  role === 'dermatologist' && styles.roleButtonTextActive,
+                ]}
+              >
+                👨‍⚕️ Dermatologist
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         <CustomInput
           label="Username"
           placeholder="Choose a username"
@@ -146,6 +205,22 @@ export default function SignupScreen({ navigation }: any) {
           leftIcon="✔️"
           error={errors.confirmPassword}
         />
+
+        {role === 'dermatologist' && (
+          <CustomInput
+            label="Medical License Number"
+            placeholder="Enter your PMC license number"
+            value={license}
+            onChangeText={(text) => {
+              setLicense(text);
+              setErrors({ ...errors, license: "" });
+            }}
+            autoCapitalize="characters"
+            leftIcon="🏥"
+            error={errors.license}
+            helperText="e.g., PMC-12345-KPK"
+          />
+        )}
 
         <CustomButton
           title="Create Account"
@@ -204,6 +279,41 @@ const styles = StyleSheet.create({
   },
   form: {
     width: "100%",
+  },
+  roleSelector: {
+    marginBottom: spacing.lg,
+  },
+  roleLabel: {
+    ...typography.body,
+    fontWeight: "600",
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  roleButtons: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  roleButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+    alignItems: "center",
+  },
+  roleButtonActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
+  roleButtonText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    fontWeight: "600",
+  },
+  roleButtonTextActive: {
+    color: colors.primary,
   },
   signupButton: {
     marginTop: spacing.lg,
