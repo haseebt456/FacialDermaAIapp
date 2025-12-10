@@ -7,6 +7,7 @@ import {
   Image,
   TouchableOpacity,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { predictionService, Prediction } from "../services/predictionService";
 import Card from "../components/Card";
@@ -43,6 +44,30 @@ export default function HistoryScreen({ navigation }: any) {
     setRefreshing(true);
     await loadPredictions();
     setRefreshing(false);
+  };
+
+  const handleDelete = (predictionId: string) => {
+    Alert.alert(
+      "Delete Prediction",
+      "Are you sure you want to delete this analysis?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            // Optimistic update
+            const prev = predictions;
+            setPredictions((curr) => curr.filter((p) => p.id !== predictionId));
+            const result = await predictionService.deletePrediction(predictionId);
+            if (!result.success) {
+              Alert.alert("Delete failed", result.error || "Could not delete prediction.");
+              setPredictions(prev);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const getConditionColor = (label: string) => {
@@ -90,13 +115,21 @@ export default function HistoryScreen({ navigation }: any) {
             </Text>
           </View>
           <Text style={styles.date}>{formatDate(item.createdAt)}</Text>
-          <CustomButton
-            title="Request Review"
-            icon="👨‍⚕️"
-            onPress={() => navigation.navigate('SelectDermatologist', { predictionId: item.id })}
-            size="small"
-            style={{ marginTop: spacing.sm }}
-          />
+          <View style={styles.actionRow}>
+            <CustomButton
+              title="Request Review"
+              icon="👨‍⚕️"
+              onPress={() => navigation.navigate('SelectDermatologist', { predictionId: item.id })}
+              size="small"
+            />
+            <CustomButton
+              title="Delete"
+              variant="outline"
+              onPress={() => handleDelete(item.id)}
+              size="small"
+              style={{ marginLeft: spacing.sm }}
+            />
+          </View>
         </View>
       </View>
     </Card>
@@ -217,6 +250,10 @@ const styles = StyleSheet.create({
   date: {
     ...typography.caption,
     color: colors.textLight,
+  },
+  actionRow: {
+    flexDirection: "row",
+    marginTop: spacing.sm,
   },
   emptyContainer: {
     flex: 1,
