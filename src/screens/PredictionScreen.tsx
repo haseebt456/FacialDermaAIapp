@@ -10,18 +10,33 @@ import {
   Platform,
 } from "react-native";
 import { launchCamera, launchImageLibrary } from "react-native-image-picker";
-import { predictionService } from "../services/predictionService";
+import { predictionService, Prediction } from "../services/predictionService";
 import CustomButton from "../components/CustomButton";
 import Card from "../components/Card";
 import Loading from "../components/Loading";
 import ScreenContainer from "../components/ScreenContainer";
 import { colors, spacing, typography, shadows, borderRadius } from "../styles/theme";
 
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB
+
 export default function PredictionScreen({ navigation }: any) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [prediction, setPrediction] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [createdPredictionId, setCreatedPredictionId] = useState<string | null>(null);
+  const [latestPrediction, setLatestPrediction] = useState<Prediction | null>(null);
+
+  const validateAsset = (asset: { uri?: string | null; fileSize?: number | null; type?: string | null }) => {
+    if (asset.fileSize && asset.fileSize > MAX_IMAGE_BYTES) {
+      Alert.alert("Image Too Large", "Please choose an image under 5MB.");
+      return false;
+    }
+    if (asset.type && !asset.type.startsWith("image/")) {
+      Alert.alert("Invalid File", "Please select an image file (jpg, png, etc.).");
+      return false;
+    }
+    return true;
+  };
 
   const requestCameraPermission = async () => {
     if (Platform.OS === "android") {
@@ -67,6 +82,7 @@ export default function PredictionScreen({ navigation }: any) {
         Alert.alert("Error", response.errorMessage || "Failed to open camera");
       } else if (response.assets && response.assets[0]) {
         const asset = response.assets[0];
+        if (!validateAsset(asset)) return;
         setSelectedImage(asset.uri || null);
         setPrediction(null);
       }
@@ -88,6 +104,7 @@ export default function PredictionScreen({ navigation }: any) {
         Alert.alert("Error", response.errorMessage || "Failed to open gallery");
       } else if (response.assets && response.assets[0]) {
         const asset = response.assets[0];
+        if (!validateAsset(asset)) return;
         setSelectedImage(asset.uri || null);
         setPrediction(null);
       }
@@ -137,6 +154,7 @@ export default function PredictionScreen({ navigation }: any) {
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
           setCreatedPredictionId(sortedPredictions[0].id);
+          setLatestPrediction(sortedPredictions[0]);
         }
       }, 1500);
     } else {
@@ -161,6 +179,20 @@ export default function PredictionScreen({ navigation }: any) {
       Warts: colors.warts,
     };
     return colorMap[label] || colors.primary;
+  };
+
+  const lowConfidence = prediction && prediction.confidence_score < 0.6;
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   return (
@@ -248,6 +280,22 @@ export default function PredictionScreen({ navigation }: any) {
                   { width: `${prediction.confidence_score * 100}%` },
                 ]}
               />
+            </View>
+            {lowConfidence && (
+              <View style={styles.warningBox}>
+                <Text style={styles.warningTitle}>Low confidence</Text>
+                <Text style={styles.warningText}>
+                  Confidence is below 60%. Please retake the photo with better lighting and ensure your face is centered.
+                </Text>
+              </View>
+            )}
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Report ID</Text>
+              <Text style={styles.metaValue}>{createdPredictionId || "Pending"}</Text>
+            </View>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Date</Text>
+              <Text style={styles.metaValue}>{formatDate(latestPrediction?.createdAt) || ""}</Text>
             </View>
             <Text style={styles.disclaimer}>
               ⚠️ This is an AI-based prediction. Please consult a dermatologist for proper diagnosis
@@ -412,6 +460,38 @@ const styles = StyleSheet.create({
   progressFill: {
     height: "100%",
     backgroundColor: colors.primary,
+  },
+  warningBox: {
+    backgroundColor: "#FFF8E6",
+    borderRadius: borderRadius.sm,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  warningTitle: {
+    ...typography.body,
+    fontWeight: "700",
+    color: colors.warning || "#C47F00",
+    marginBottom: spacing.xs,
+  },
+  warningText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  metaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.xs,
+  },
+  metaLabel: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+  },
+  metaValue: {
+    ...typography.bodySmall,
+    color: colors.text,
+    fontWeight: "600",
   },
   disclaimer: {
     ...typography.caption,
