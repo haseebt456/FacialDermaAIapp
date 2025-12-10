@@ -6,8 +6,16 @@ export interface Prediction {
   result: {
     predicted_label: string;
     confidence_score: number;
+    all_probabilities?: {
+      Eczema: number;
+      Acne: number;
+      melasma: number;
+      Rosacea: number;
+      'Seborrheic Dermatitis': number;
+    };
   };
   imageUrl: string;
+  reportId?: string;
   createdAt: string;
 }
 
@@ -15,6 +23,14 @@ export interface PredictionResult {
   predicted_label: string;
   confidence_score: number;
   image_url: string;
+  report_id: string;
+  all_probabilities: {
+    Eczema: number;
+    Acne: number;
+    melasma: number;
+    Rosacea: number;
+    'Seborrheic Dermatitis': number;
+  };
 }
 
 export const predictionService = {
@@ -24,10 +40,36 @@ export const predictionService = {
       const response = await api.get('/api/predictions');
       return { success: true, data: response.data as Prediction[] };
     } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.error || 'Failed to fetch predictions',
-      };
+      let message = 'Unable to load your predictions. Please try again.';
+      if (error.response?.data?.error) {
+        message = error.response.data.error;
+      } else if (error.message === 'Network Error') {
+        message = 'Cannot connect to server. Please check your internet connection.';
+      }
+      return { success: false, error: message };
+    }
+  },
+
+  // Delete a prediction by id
+  deletePrediction: async (id: string) => {
+    try {
+      await api.delete(`/api/predictions/${id}`);
+      return { success: true };
+    } catch (error: any) {
+      let message = 'Failed to delete prediction.';
+      if (error.response?.data?.error) {
+        const err = error.response.data.error.toLowerCase();
+        if (err.includes('invalid')) {
+          message = 'Invalid prediction ID.';
+        } else if (err.includes('not found') || err.includes('permission')) {
+          message = 'Prediction not found or you do not have permission to delete it.';
+        } else {
+          message = error.response.data.error;
+        }
+      } else if (error.message === 'Network Error') {
+        message = 'Cannot connect to server. Please check your internet connection.';
+      }
+      return { success: false, error: message };
     }
   },
 
@@ -59,18 +101,36 @@ export const predictionService = {
       return { success: true, data: response.data as PredictionResult };
     } catch (error: any) {
       let message = 'Unable to analyze image. Please try again.';
-      if (error.response?.data?.detail?.error) {
+      
+      // Check for detailed error from API
+      if (error.response?.data?.error) {
+        const err = error.response.data.error.toLowerCase();
+        if (err.includes('no face detected')) {
+          message = 'No face detected in the image. Please upload a clear photo showing your face.';
+        } else if (err.includes('face is too small')) {
+          message = 'Your face is too small in the image. Please move closer or upload a clearer photo.';
+        } else if (err.includes('upload') && err.includes('failed')) {
+          message = 'Failed to upload image. Please try again.';
+        } else {
+          message = error.response.data.error;
+        }
+      } else if (error.response?.data?.detail?.error) {
+        // Some APIs wrap errors in detail object
         message = error.response.data.detail.error;
-      } else if (error.response?.data?.error) {
-        message = error.response.data.error;
       } else if (error.message === 'Network Error') {
         message = 'Cannot connect to server. Please check your internet connection and try again.';
       } else if (error.code === 'ECONNABORTED') {
-        message = 'Analysis is taking too long. Please try with a smaller image.';
-      } else if (error.message) {
-        message = error.message;
+        message = 'Analysis is taking too long. Please try with a smaller or clearer image.';
       }
-      return { success: false, error: message };
+      
+      // Include validation details if available
+      const validationDetails = error.response?.data?.validation_details;
+      
+      return { 
+        success: false, 
+        error: message,
+        validationDetails,
+      };
     }
   },
 };
