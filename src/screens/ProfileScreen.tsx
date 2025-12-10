@@ -67,7 +67,9 @@ export default function ProfileScreen({ navigation }: any) {
           </Text>
         </View>
         <Text style={styles.username}>{user?.username || "User"}</Text>
-        <Text style={styles.role}>Patient</Text>
+        <Text style={styles.role}>
+          {user?.role === 'dermatologist' ? 'Dermatologist' : 'Patient'}
+        </Text>
       </View>
 
       <Card style={styles.infoCard}>
@@ -89,29 +91,40 @@ export default function ProfileScreen({ navigation }: any) {
 
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Role</Text>
-          <Text style={styles.infoValue}>Patient</Text>
+          <Text style={styles.infoValue}>
+            {user?.role === 'dermatologist' ? 'Dermatologist' : 'Patient'}
+          </Text>
         </View>
       </Card>
 
       <Card style={styles.menuCard}>
         <Text style={styles.sectionTitle}>Settings</Text>
 
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('EditProfile')}
+        >
+          <Text style={styles.menuText}>✏️ Edit Profile</Text>
+          <Text style={styles.menuArrow}>›</Text>
+        </TouchableOpacity>
+
+        <View style={styles.divider} />
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('ChangePassword')}
+        >
+          <Text style={styles.menuText}>🔑 Change Password</Text>
+          <Text style={styles.menuArrow}>›</Text>
+        </TouchableOpacity>
+
+        <View style={styles.divider} />
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('Notifications')}
+        >
           <Text style={styles.menuText}>🔔 Notifications</Text>
-          <Text style={styles.menuArrow}>›</Text>
-        </TouchableOpacity>
-
-        <View style={styles.divider} />
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuText}>🔒 Privacy</Text>
-          <Text style={styles.menuArrow}>›</Text>
-        </TouchableOpacity>
-
-        <View style={styles.divider} />
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuText}>ℹ️ About</Text>
           <Text style={styles.menuArrow}>›</Text>
         </TouchableOpacity>
       </Card>
