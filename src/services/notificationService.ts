@@ -3,7 +3,12 @@ import api from './api';
 export interface NotificationItem {
   id: string;
   userId: string;
-  type: 'review_requested' | 'review_submitted' | 'review_rejected';
+  type: 
+    | 'review_requested'      // New review request (for dermatologists)
+    | 'review_completed'      // Review submitted (for patients)
+    | 'review_rejected'       // Review request rejected (for patients)
+    | 'verification_approved' // Dermatologist verification approved
+    | 'verification_rejected'; // Dermatologist verification rejected
   message: string;
   createdAt: string;
   isRead: boolean;
@@ -19,7 +24,7 @@ export const notificationService = {
       const response = await api.get(`/api/notifications`, {
         params: { unreadOnly, limit, offset },
       });
-      // Backend may return array directly or wrapped in { notifications: [...] }
+      // Backend returns { notifications: [...], total, unreadCount, limit, offset }
       const notifications = Array.isArray(response.data) 
         ? response.data 
         : (response.data?.notifications || []);
@@ -42,10 +47,18 @@ export const notificationService = {
       await api.patch(`/api/notifications/${id}/read`);
       return { success: true };
     } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.error || 'Failed to mark notification as read',
-      };
+      let message = 'Failed to update notification.';
+      if (error.response?.data?.error) {
+        const err = error.response.data.error.toLowerCase();
+        if (err.includes('not found')) {
+          message = 'Notification not found.';
+        } else {
+          message = error.response.data.error;
+        }
+      } else if (error.message === 'Network Error') {
+        message = 'Cannot connect to server. Please check your internet connection.';
+      }
+      return { success: false, error: message };
     }
   },
 
@@ -54,10 +67,18 @@ export const notificationService = {
       await api.delete(`/api/notifications/${id}`);
       return { success: true };
     } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.error || 'Failed to delete notification',
-      };
+      let message = 'Failed to delete notification.';
+      if (error.response?.data?.error) {
+        const err = error.response.data.error.toLowerCase();
+        if (err.includes('not found')) {
+          message = 'Notification not found.';
+        } else {
+          message = error.response.data.error;
+        }
+      } else if (error.message === 'Network Error') {
+        message = 'Cannot connect to server. Please check your internet connection.';
+      }
+      return { success: false, error: message };
     }
   },
 };
