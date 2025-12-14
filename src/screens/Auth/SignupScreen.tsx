@@ -78,20 +78,8 @@ export default function SignupScreen({ navigation }: any) {
     setLoading(false);
 
     if (result.success) {
-      const message = role === 'dermatologist'
-        ? "Registration successful! Please verify your email. Your account will be activated after admin approval."
-        : "Registration successful! Please check your email to verify your account.";
-      
-      Alert.alert(
-        "Success",
-        message,
-        [
-          {
-            text: "OK",
-            onPress: () => navigation.navigate("Login"),
-          },
-        ]
-      );
+      // Navigate to email verification screen with user's email
+      navigation.navigate("EmailVerificationOTP", { email: email.trim() });
     } else {
       Alert.alert("Signup Failed", result.error);
     }
