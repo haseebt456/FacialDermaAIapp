@@ -1,23 +1,21 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, RefreshControl, ScrollView, StatusBar } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { authService } from "../services/authService";
 import { reviewService } from "../services/reviewService";
 import Card from "../components/Card";
-import CustomButton from "../components/CustomButton";
 import Loading from "../components/Loading";
-import ScreenContainer from "../components/ScreenContainer";
-import { colors, spacing, typography, shadows } from "../styles/theme";
+import { colors, spacing, typography, shadows, borderRadius } from "../styles/theme";
+import { bottomNavHeight } from "../components/BottomNav";
 
 export default function DermatologistHomeScreen({ navigation }: any) {
   const [user, setUser] = useState<any>(null);
-  const [stats, setStats] = useState({ pending: 0, completed: 0, rejected: 0 });
+  const [stats, setStats] = useState({ pending: 0, completed: 0, rejected: 0, total: 0 });
+  const [recentRequests, setRecentRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     const userData = await authService.getStoredUser();
     setUser(userData);
 
@@ -26,112 +24,248 @@ export default function DermatologistHomeScreen({ navigation }: any) {
       const pending = requests.data.filter((r: any) => r.status === "pending").length;
       const completed = requests.data.filter((r: any) => r.status === "reviewed").length;
       const rejected = requests.data.filter((r: any) => r.status === "rejected").length;
-      setStats({ pending, completed, rejected });
+      setStats({ pending, completed, rejected, total: requests.data.length });
+      
+      // Get recent pending requests (up to 3)
+      const pendingRequests = requests.data
+        .filter((r: any) => r.status === "pending")
+        .slice(0, 3);
+      setRecentRequests(pendingRequests);
     }
 
     setLoading(false);
+    setRefreshing(false);
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   if (loading) {
-    return <Loading fullScreen message="Loading..." />;
+    return <Loading fullScreen message="Loading dashboard..." />;
   }
 
   return (
-    <ScreenContainer backgroundColor={colors.backgroundGray} withKeyboardAvoid={false}>
-      <View style={styles.header}>
+    <View style={styles.screenContainer}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+        }
+      >
+        {/* Header */}
+        <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Welcome back,</Text>
-          <Text style={styles.username}>Dr. {user?.username || "Doctor"}</Text>
+          <Text style={styles.username}>Dr. {user?.name || user?.username || "Doctor"}</Text>
         </View>
-        <View style={styles.avatarSmall}>
+        <TouchableOpacity 
+          style={styles.avatarSmall}
+          onPress={() => navigation.navigate("Profile")}
+          activeOpacity={0.7}
+        >
           <Text style={styles.avatarText}>
-            {user?.username?.charAt(0).toUpperCase() || "D"}
+            {(user?.name || user?.username)?.charAt(0).toUpperCase() || "D"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Role Info Banner */}
+      <View style={styles.infoBanner}>
+        <Text style={styles.infoBannerIcon}>👨‍⚕️</Text>
+        <View style={styles.infoBannerText}>
+          <Text style={styles.infoBannerTitle}>Dermatologist Dashboard</Text>
+          <Text style={styles.infoBannerDesc}>
+            Review patient skin analyses and provide expert consultations
           </Text>
         </View>
       </View>
 
-      <View style={styles.mainCardContainer}>
-        <Card style={styles.mainCard}>
-          <View style={styles.mainCardHeader}>
-            <View style={styles.iconContainer}>
-              <Text style={styles.mainCardIcon}>👨‍⚕️</Text>
-            </View>
-            <View style={styles.mainCardTextContainer}>
-              <Text style={styles.cardTitle}>Review Dashboard</Text>
-              <Text style={styles.cardDescription}>
-                Manage patient review requests
-              </Text>
-            </View>
-          </View>
-          <CustomButton
-            title="View Requests"
-            icon="📋"
-            onPress={() => navigation.navigate("DermatologistReviews")}
-            size="large"
-            fullWidth
-          />
-        </Card>
-      </View>
-
-      <View style={styles.quickActionsTitle}>
-        <Text style={styles.sectionTitle}>Statistics</Text>
+      {/* Statistics */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Review Statistics</Text>
       </View>
 
       <View style={styles.statsContainer}>
-        <Card style={styles.statCardPending}>
-          <Text style={styles.statNumber}>{stats.pending}</Text>
-          <Text style={styles.statLabel}>Pending</Text>
-        </Card>
+        <TouchableOpacity 
+          style={styles.statCardWrapper}
+          onPress={() => navigation.navigate("DermatologistReviews", { filter: "pending" })}
+          activeOpacity={0.7}
+        >
+          <Card style={styles.statCardPending}>
+            <Text style={styles.statNumber}>{stats.pending}</Text>
+            <Text style={styles.statLabel}>Pending</Text>
+            <Text style={styles.statSubtext}>Awaiting review</Text>
+          </Card>
+        </TouchableOpacity>
 
-        <Card style={styles.statCardCompleted}>
-          <Text style={styles.statNumber}>{stats.completed}</Text>
-          <Text style={styles.statLabel}>Completed</Text>
-        </Card>
+        <TouchableOpacity 
+          style={styles.statCardWrapper}
+          onPress={() => navigation.navigate("DermatologistReviews", { filter: "reviewed" })}
+          activeOpacity={0.7}
+        >
+          <Card style={styles.statCardCompleted}>
+            <Text style={[styles.statNumber, { color: colors.success }]}>{stats.completed}</Text>
+            <Text style={styles.statLabel}>Completed</Text>
+            <Text style={styles.statSubtext}>Reviews done</Text>
+          </Card>
+        </TouchableOpacity>
 
-        <Card style={styles.statCardRejected}>
-          <Text style={styles.statNumber}>{stats.rejected}</Text>
-          <Text style={styles.statLabel}>Rejected</Text>
-        </Card>
+        <TouchableOpacity 
+          style={styles.statCardWrapper}
+          onPress={() => navigation.navigate("DermatologistReviews", { filter: "rejected" })}
+          activeOpacity={0.7}
+        >
+          <Card style={styles.statCardRejected}>
+            <Text style={[styles.statNumber, { color: colors.error }]}>{stats.rejected}</Text>
+            <Text style={styles.statLabel}>Rejected</Text>
+            <Text style={styles.statSubtext}>Declined</Text>
+          </Card>
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.quickActionsTitle}>
+      {/* Pending Reviews Section */}
+      {stats.pending > 0 && (
+        <>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Pending Reviews</Text>
+            <TouchableOpacity onPress={() => navigation.navigate("DermatologistReviews")}>
+              <Text style={styles.seeAllText}>See All →</Text>
+            </TouchableOpacity>
+          </View>
+
+          {recentRequests.map((request) => (
+            <TouchableOpacity
+              key={request.id}
+              style={styles.requestCard}
+              onPress={() => navigation.navigate("DermatologistReviewDetail", { requestId: request.id })}
+              activeOpacity={0.7}
+            >
+              <Card style={styles.requestCardInner}>
+                <View style={styles.requestHeader}>
+                  <View style={styles.patientAvatar}>
+                    <Text style={styles.patientAvatarText}>
+                      {request.patientUsername?.charAt(0).toUpperCase() || "P"}
+                    </Text>
+                  </View>
+                  <View style={styles.requestInfo}>
+                    <Text style={styles.patientName}>{request.patientUsername || "Patient"}</Text>
+                    <Text style={styles.requestDate}>{formatDate(request.createdAt)}</Text>
+                  </View>
+                  <View style={styles.pendingBadge}>
+                    <Text style={styles.pendingBadgeText}>Pending</Text>
+                  </View>
+                </View>
+                <View style={styles.requestFooter}>
+                  <Text style={styles.reviewCta}>Tap to review →</Text>
+                </View>
+              </Card>
+            </TouchableOpacity>
+          ))}
+        </>
+      )}
+
+      {/* Empty State for No Pending */}
+      {stats.pending === 0 && (
+        <Card style={styles.emptyCard}>
+          <Text style={styles.emptyIcon}>✅</Text>
+          <Text style={styles.emptyTitle}>All Caught Up!</Text>
+          <Text style={styles.emptyText}>
+            No pending review requests at the moment. Check back later for new patient consultations.
+          </Text>
+        </Card>
+      )}
+
+      {/* Quick Actions */}
+      <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
       </View>
 
-      <View style={styles.grid}>
+      <View style={styles.actionsContainer}>
         <TouchableOpacity
-          style={styles.gridItem}
-          onPress={() => navigation.navigate("Profile")}
+          style={styles.actionItem}
+          onPress={() => navigation.navigate("DermatologistReviews")}
           activeOpacity={0.7}
         >
-          <Card style={styles.gridCard}>
-            <View style={styles.gridIconContainer}>
-              <Text style={styles.gridIcon}>⚙️</Text>
+          <Card style={styles.actionCard}>
+            <View style={[styles.actionIconContainer, { backgroundColor: colors.primaryLight }]}>
+              <Text style={styles.actionIcon}>📋</Text>
             </View>
-            <Text style={styles.gridTitle}>Profile</Text>
-            <Text style={styles.gridDescription}>Settings</Text>
+            <Text style={styles.actionTitle}>All Reviews</Text>
+            <Text style={styles.actionDesc}>{stats.total} total</Text>
           </Card>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.gridItem}
+          style={styles.actionItem}
           onPress={() => navigation.navigate("Notifications")}
           activeOpacity={0.7}
         >
-          <Card style={styles.gridCard}>
-            <View style={styles.gridIconContainer}>
-              <Text style={styles.gridIcon}>🔔</Text>
+          <Card style={styles.actionCard}>
+            <View style={[styles.actionIconContainer, { backgroundColor: "#FFF4E6" }]}>
+              <Text style={styles.actionIcon}>🔔</Text>
             </View>
-            <Text style={styles.gridTitle}>Notifications</Text>
-            <Text style={styles.gridDescription}>Alerts</Text>
+            <Text style={styles.actionTitle}>Notifications</Text>
+            <Text style={styles.actionDesc}>Stay updated</Text>
+          </Card>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionItem}
+          onPress={() => navigation.navigate("Profile")}
+          activeOpacity={0.7}
+        >
+          <Card style={styles.actionCard}>
+            <View style={[styles.actionIconContainer, { backgroundColor: "#E8F5E9" }]}>
+              <Text style={styles.actionIcon}>⚙️</Text>
+            </View>
+            <Text style={styles.actionTitle}>Profile</Text>
+            <Text style={styles.actionDesc}>Settings</Text>
           </Card>
         </TouchableOpacity>
       </View>
-    </ScreenContainer>
+
+      <View style={styles.bottomSpacer} />
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screenContainer: {
+    flex: 1,
+    backgroundColor: colors.backgroundGray,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: bottomNavHeight + spacing.lg,
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -163,131 +297,209 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: "700",
   },
-  mainCardContainer: {
-    padding: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  mainCard: {
-    padding: spacing.xl,
-  },
-  mainCardHeader: {
+  infoBanner: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: spacing.lg,
-  },
-  iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
     backgroundColor: colors.primaryLight,
-    justifyContent: "center",
-    alignItems: "center",
+    margin: spacing.lg,
+    marginBottom: spacing.md,
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+  },
+  infoBannerIcon: {
+    fontSize: 32,
     marginRight: spacing.md,
   },
-  mainCardIcon: {
-    fontSize: 32,
-  },
-  mainCardTextContainer: {
+  infoBannerText: {
     flex: 1,
   },
-  cardTitle: {
-    ...typography.h2,
-    color: colors.text,
+  infoBannerTitle: {
+    ...typography.body,
     fontWeight: "700",
-    marginBottom: spacing.xs,
+    color: colors.primary,
+    marginBottom: 2,
   },
-  cardDescription: {
-    ...typography.bodySmall,
+  infoBannerDesc: {
+    ...typography.caption,
     color: colors.textSecondary,
-    lineHeight: 20,
   },
-  quickActionsTitle: {
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.md,
+    marginTop: spacing.sm,
   },
   sectionTitle: {
     ...typography.h3,
     color: colors.text,
     fontWeight: "700",
   },
+  seeAllText: {
+    ...typography.bodySmall,
+    color: colors.primary,
+    fontWeight: "600",
+  },
   statsContainer: {
-    flexDirection: "row",
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  statCard: {
-    flex: 1,
-    padding: spacing.lg,
-    marginRight: spacing.sm,
-    alignItems: "center",
-  },
-  statCardPending: {
-    flex: 1,
-    padding: spacing.lg,
-    marginRight: spacing.sm,
-    alignItems: "center",
-    backgroundColor: "#FFF4E6",
-  },
-  statCardCompleted: {
-    flex: 1,
-    padding: spacing.lg,
-    marginRight: spacing.sm,
-    alignItems: "center",
-    backgroundColor: "#E6F7F5",
-  },
-  statCardRejected: {
-    flex: 1,
-    padding: spacing.lg,
-    marginRight: spacing.sm,
-    alignItems: "center",
-    backgroundColor: "#FFE6E6",
-  },
-  statNumber: {
-    ...typography.h1,
-    fontWeight: "700",
-    marginBottom: spacing.xs,
-  },
-  statLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
-  grid: {
     flexDirection: "row",
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.md,
   },
-  gridItem: {
+  statCardWrapper: {
     flex: 1,
+    marginRight: spacing.sm,
+  },
+  statCardPending: {
+    padding: spacing.md,
+    alignItems: "center",
+    backgroundColor: "#FFF8E1",
+  },
+  statCardCompleted: {
+    padding: spacing.md,
+    alignItems: "center",
+    backgroundColor: "#E8F5E9",
+  },
+  statCardRejected: {
+    padding: spacing.md,
+    alignItems: "center",
+    backgroundColor: "#FFEBEE",
+  },
+  statNumber: {
+    ...typography.h1,
+    fontWeight: "700",
+    color: "#F9A825",
+    marginBottom: 2,
+  },
+  statLabel: {
+    ...typography.bodySmall,
+    fontWeight: "600",
+    color: colors.text,
+  },
+  statSubtext: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontSize: 10,
+  },
+  requestCard: {
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  requestCardInner: {
+    padding: spacing.md,
+  },
+  requestHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  patientAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: spacing.md,
   },
-  gridCard: {
+  patientAvatarText: {
+    ...typography.body,
+    color: colors.white,
+    fontWeight: "700",
+  },
+  requestInfo: {
+    flex: 1,
+  },
+  patientName: {
+    ...typography.body,
+    fontWeight: "600",
+    color: colors.text,
+  },
+  requestDate: {
+    ...typography.caption,
+    color: colors.textSecondary,
+  },
+  pendingBadge: {
+    backgroundColor: "#FFF8E1",
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+  },
+  pendingBadgeText: {
+    ...typography.caption,
+    color: "#F9A825",
+    fontWeight: "600",
+  },
+  requestFooter: {
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  reviewCta: {
+    ...typography.bodySmall,
+    color: colors.primary,
+    fontWeight: "600",
+    textAlign: "right",
+  },
+  emptyCard: {
+    margin: spacing.lg,
+    padding: spacing.xl,
     alignItems: "center",
-    padding: spacing.lg,
-    minHeight: 140,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: spacing.md,
+  },
+  emptyTitle: {
+    ...typography.h3,
+    color: colors.text,
+    fontWeight: "700",
+    marginBottom: spacing.sm,
+  },
+  emptyText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  actionsContainer: {
+    flexDirection: "row",
+    paddingHorizontal: spacing.lg,
+  },
+  actionItem: {
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  actionCard: {
+    alignItems: "center",
+    padding: spacing.md,
+    minHeight: 120,
     justifyContent: "center",
   },
-  gridIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primaryLight,
+  actionIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: spacing.sm,
   },
-  gridIcon: {
-    fontSize: 28,
+  actionIcon: {
+    fontSize: 24,
   },
-  gridTitle: {
-    ...typography.body,
+  actionTitle: {
+    ...typography.bodySmall,
     color: colors.text,
     fontWeight: "600",
-    marginBottom: spacing.xs,
     textAlign: "center",
   },
-  gridDescription: {
+  actionDesc: {
     ...typography.caption,
     color: colors.textSecondary,
     textAlign: "center",
+    fontSize: 10,
+  },
+  bottomSpacer: {
+    height: spacing.xl,
   },
 });
