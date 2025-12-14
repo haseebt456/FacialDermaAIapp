@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Alert } from "react-native";
 import { authService } from "../../services/authService";
 import CustomButton from "../../components/CustomButton";
 import Loading from "../../components/Loading";
@@ -7,10 +7,11 @@ import ScreenContainer from "../../components/ScreenContainer";
 import { colors, spacing, typography } from "../../styles/theme";
 
 export default function EmailVerificationScreen({ route, navigation }: any) {
-  const { token } = route.params || {};
+  const { token, email } = route.params || {};
   const [verifying, setVerifying] = useState(!!token);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [resending, setResending] = useState(false);
 
   useEffect(() => {
     const verifyEmailAsync = async () => {
@@ -61,6 +62,32 @@ export default function EmailVerificationScreen({ route, navigation }: any) {
               fullWidth
               size="large"
             />
+            {email ? (
+              <>
+                <CustomButton
+                  title="Verify with OTP instead"
+                  onPress={() => navigation.navigate("EmailVerificationOTP", { email })}
+                  variant="ghost"
+                  fullWidth
+                />
+                <CustomButton
+                  title="Resend verification email"
+                  onPress={async () => {
+                    setResending(true);
+                    const result = await authService.resendVerificationEmail(email);
+                    setResending(false);
+                    if (result.success) {
+                      Alert.alert("Sent", "A new verification email/OTP has been sent.");
+                    } else {
+                      Alert.alert("Unable to send", result.error);
+                    }
+                  }}
+                  loading={resending}
+                  variant="ghost"
+                  fullWidth
+                />
+              </>
+            ) : null}
           </>
         )}
       </View>
