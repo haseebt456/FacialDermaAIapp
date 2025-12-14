@@ -6,6 +6,7 @@ import ForgotPasswordScreen from "../screens/Auth/ForgotPasswordScreen";
 import VerifyOTPScreen from "../screens/Auth/VerifyOTPScreen";
 import ResetPasswordScreen from "../screens/Auth/ResetPasswordScreen";
 import EmailVerificationScreen from "../screens/Auth/EmailVerificationScreen";
+import EmailVerificationOTPScreen from "../screens/Auth/EmailVerificationOTPScreen";
 
 const Stack = createStackNavigator();
 
@@ -18,6 +19,7 @@ export default function AuthStack() {
       <Stack.Screen name="VerifyOTP" component={VerifyOTPScreen} />
       <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
       <Stack.Screen name="EmailVerification" component={EmailVerificationScreen} />
+      <Stack.Screen name="EmailVerificationOTP" component={EmailVerificationOTPScreen} />
     </Stack.Navigator>
   );
 }
