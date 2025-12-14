@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { createStackNavigator } from "@react-navigation/stack";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import HomeScreen from "../screens/HomeScreen";
 import PredictionScreen from "../screens/PredictionScreen";
 import HistoryScreen from "../screens/HistoryScreen";
@@ -14,12 +15,43 @@ import EditProfileScreen from "../screens/EditProfileScreen";
 import DermatologistHomeScreen from "../screens/DermatologistHomeScreen";
 import DermatologistReviewsScreen from "../screens/DermatologistReviewsScreen";
 import DermatologistReviewDetailScreen from "../screens/DermatologistReviewDetailScreen";
+import Loading from "../components/Loading";
 
 const Stack = createStackNavigator();
 
 export default function MainStack() {
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const getUserRole = async () => {
+      try {
+        const userJson = await AsyncStorage.getItem("user");
+        if (userJson) {
+          const user = JSON.parse(userJson);
+          setUserRole(user.role);
+        }
+      } catch (error) {
+        console.error("Error getting user role:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    getUserRole();
+  }, []);
+
+  if (loading) {
+    return <Loading fullScreen message="Loading..." />;
+  }
+
+  // Set initial route based on user role
+  const initialRouteName = userRole === 'dermatologist' ? 'DermatologistHome' : 'Home';
+
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator 
+      screenOptions={{ headerShown: false }}
+      initialRouteName={initialRouteName}
+    >
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="DermatologistHome" component={DermatologistHomeScreen} />
       <Stack.Screen name="Prediction" component={PredictionScreen} />
