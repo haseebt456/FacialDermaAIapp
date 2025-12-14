@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { launchCamera, launchImageLibrary } from "react-native-image-picker";
 import { predictionService, Prediction } from "../services/predictionService";
+import { authService } from "../services/authService";
 import CustomButton from "../components/CustomButton";
 import Card from "../components/Card";
 import Loading from "../components/Loading";
@@ -25,6 +26,24 @@ export default function PredictionScreen({ navigation }: any) {
   const [loading, setLoading] = useState(false);
   const [createdPredictionId, setCreatedPredictionId] = useState<string | null>(null);
   const [latestPrediction, setLatestPrediction] = useState<Prediction | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  // Check user role and redirect dermatologists
+  useEffect(() => {
+    const checkRole = async () => {
+      const user = await authService.getStoredUser();
+      setUserRole(user?.role || null);
+      
+      if (user?.role === 'dermatologist') {
+        Alert.alert(
+          "Access Restricted",
+          "Analysis feature is only available for patients. Dermatologists can review patient analyses from the Reviews section.",
+          [{ text: "OK", onPress: () => navigation.goBack() }]
+        );
+      }
+    };
+    checkRole();
+  }, [navigation]);
 
   const validateAsset = (asset: { uri?: string | null; fileSize?: number | null; type?: string | null }) => {
     if (asset.fileSize && asset.fileSize > MAX_IMAGE_BYTES) {
@@ -194,6 +213,35 @@ export default function PredictionScreen({ navigation }: any) {
       minute: "2-digit",
     });
   };
+
+  // Block dermatologists from accessing analysis
+  if (userRole === 'dermatologist') {
+    return (
+      <ScreenContainer
+        backgroundColor={colors.backgroundGray}
+        withKeyboardAvoid={false}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Text style={styles.backText}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>AI Skin Analysis</Text>
+          <View style={styles.spacer} />
+        </View>
+        <Card style={styles.uploadCard}>
+          <View style={styles.uploadArea}>
+            <View style={styles.uploadIconContainer}>
+              <Text style={styles.uploadIcon}>🚫</Text>
+            </View>
+            <Text style={styles.uploadText}>Access Restricted</Text>
+            <Text style={styles.uploadSubtext}>
+              Analysis feature is only available for patients. As a dermatologist, you can review patient analyses from the Reviews section.
+            </Text>
+          </View>
+        </Card>
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer
