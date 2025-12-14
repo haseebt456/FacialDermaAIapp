@@ -33,8 +33,11 @@ export const authService = {
       return { success: true, data: response.data };
     } catch (error: any) {
       let message = 'Unable to create account. Please try again.';
-      if (error.response?.data?.error) {
-        const err = error.response.data.error.toLowerCase();
+      // Check detail.error first (API standard), then fallback to error
+      const errorMsg = error.response?.data?.detail?.error || error.response?.data?.error;
+      
+      if (errorMsg) {
+        const err = errorMsg.toLowerCase();
         if (err.includes('email') && err.includes('registered')) {
           message = 'This email is already registered. Try logging in instead.';
         } else if (err.includes('username') && err.includes('taken')) {
@@ -46,7 +49,7 @@ export const authService = {
         } else if (err.includes('username') && err.includes('spaces')) {
           message = 'Username cannot contain spaces.';
         } else {
-          message = error.response.data.error;
+          message = errorMsg;
         }
       } else if (error.message === 'Network Error') {
         message = 'Cannot connect to server. Please check your internet connection.';
@@ -67,8 +70,10 @@ export const authService = {
       return { success: true, data: response.data };
     } catch (error: any) {
       let message = 'Unable to login. Please check your credentials.';
-      if (error.response?.data?.error) {
-        const err = error.response.data.error.toLowerCase();
+      const errorMsg = error.response?.data?.detail?.error || error.response?.data?.error;
+      
+      if (errorMsg) {
+        const err = errorMsg.toLowerCase();
         if (err.includes('not found') || err.includes('user not found')) {
           message = 'Account not found. Please check your credentials or sign up.';
         } else if (err.includes('invalid password')) {
@@ -78,13 +83,13 @@ export const authService = {
         } else if (err.includes('pending admin approval') || err.includes('pending approval')) {
           message = 'Your account is pending admin approval. You will be notified once approved.';
         } else if (err.includes('verification was rejected')) {
-          message = error.response.data.error; // Show full rejection reason
+          message = errorMsg; // Show full rejection reason
         } else if (err.includes('role mismatch')) {
-          message = error.response.data.error;
+          message = errorMsg;
         } else if (err.includes('suspended')) {
           message = 'Your account has been suspended. Please contact support.';
         } else {
-          message = error.response.data.error;
+          message = errorMsg;
         }
       } else if (error.message === 'Network Error') {
         message = 'Cannot connect to server. Please check your internet connection.';
@@ -105,9 +110,10 @@ export const authService = {
       const response = await api.get('/api/users/me');
       return { success: true, data: response.data };
     } catch (error: any) {
+      const errorMsg = error.response?.data?.detail?.error || error.response?.data?.error || 'Failed to get user';
       return {
         success: false,
-        error: error.response?.data?.error || 'Failed to get user',
+        error: errorMsg,
       };
     }
   },
@@ -131,14 +137,70 @@ export const authService = {
       return { success: true, data: response.data };
     } catch (error: any) {
       let message = 'Email verification failed. Please try again.';
-      if (error.response?.data?.error) {
-        const err = error.response.data.error.toLowerCase();
+      const errorMsg = error.response?.data?.detail?.error || error.response?.data?.error;
+      
+      if (errorMsg) {
+        const err = errorMsg.toLowerCase();
         if (err.includes('expired')) {
           message = 'Verification link has expired. Please request a new verification email.';
         } else if (err.includes('already verified')) {
           message = 'Email is already verified. You can now log in.';
         } else if (err.includes('invalid')) {
           message = 'Invalid verification link. Please request a new verification email.';
+        } else {
+          message = errorMsg;
+        }
+      } else if (error.message === 'Network Error') {
+        message = 'Cannot connect to server. Please check your internet connection.';
+      }
+      return { success: false, error: message };
+    }
+  },
+
+  // Verify email via OTP (alternative to link)
+  verifyEmailOtp: async (email: string, otp: string) => {
+    try {
+      const response = await api.post('/api/auth/verify-email-otp', { email, otp });
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      let message = 'Invalid or expired code. Please try again.';
+      if (error.response?.data?.detail?.error) {
+        message = error.response.data.detail.error;
+      } else if (error.response?.data?.error) {
+        const err = error.response.data.error.toLowerCase();
+        if (err.includes('invalid')) {
+          message = 'Invalid OTP. Please check the code and try again.';
+        } else if (err.includes('expired') || err.includes('gone')) {
+          message = 'OTP has expired. Please request a new one.';
+        } else if (err.includes('too many') || err.includes('locked')) {
+          message = 'Too many attempts. Please wait a few minutes before retrying.';
+        } else {
+          message = error.response.data.error;
+        }
+      } else if (error.message === 'Network Error') {
+        message = 'Cannot connect to server. Please check your internet connection.';
+      }
+      return { success: false, error: message };
+    }
+  },
+
+  // Resend verification email
+  resendVerificationEmail: async (email: string) => {
+    try {
+      const response = await api.post('/api/auth/verification/resend', { email });
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      let message = 'Unable to send verification email. Please try again.';
+      if (error.response?.data?.detail?.error) {
+        message = error.response.data.detail.error;
+      } else if (error.response?.data?.error) {
+        const err = error.response.data.error.toLowerCase();
+        if (err.includes('already verified')) {
+          message = 'This email is already verified. You can log in now.';
+        } else if (err.includes('not found')) {
+          message = 'No account found with this email address.';
+        } else if (err.includes('too many') || err.includes('wait')) {
+          message = 'Please wait a few minutes before requesting again.';
         } else {
           message = error.response.data.error;
         }
@@ -156,12 +218,14 @@ export const authService = {
       return { success: true, data: response.data };
     } catch (error: any) {
       let message = 'Failed to send reset code. Please try again.';
-      if (error.response?.data?.error) {
-        const err = error.response.data.error.toLowerCase();
+      const errorMsg = error.response?.data?.detail?.error || error.response?.data?.error;
+      
+      if (errorMsg) {
+        const err = errorMsg.toLowerCase();
         if (err.includes('no account') || err.includes('not found')) {
           message = 'No account found with this email address.';
         } else {
-          message = error.response.data.error;
+          message = errorMsg;
         }
       } else if (error.message === 'Network Error') {
         message = 'Cannot connect to server. Please check your internet connection.';
@@ -177,14 +241,16 @@ export const authService = {
       return { success: true, data: response.data };
     } catch (error: any) {
       let message = 'Invalid or expired code. Please try again.';
-      if (error.response?.data?.error) {
-        const err = error.response.data.error.toLowerCase();
+      const errorMsg = error.response?.data?.detail?.error || error.response?.data?.error;
+      
+      if (errorMsg) {
+        const err = errorMsg.toLowerCase();
         if (err.includes('invalid otp')) {
           message = 'Invalid code. Please check and try again.';
         } else if (err.includes('expired')) {
           message = 'Code has expired. Please request a new one.';
         } else {
-          message = error.response.data.error;
+          message = errorMsg;
         }
       } else if (error.message === 'Network Error') {
         message = 'Cannot connect to server. Please check your internet connection.';
@@ -200,8 +266,10 @@ export const authService = {
       return { success: true, data: response.data };
     } catch (error: any) {
       let message = 'Failed to reset password. Please try again.';
-      if (error.response?.data?.error) {
-        const err = error.response.data.error.toLowerCase();
+      const errorMsg = error.response?.data?.detail?.error || error.response?.data?.error;
+      
+      if (errorMsg) {
+        const err = errorMsg.toLowerCase();
         if (err.includes('invalid otp') || err.includes('invalid') || err.includes('email')) {
           message = 'Invalid code or email. Please try again.';
         } else if (err.includes('expired')) {
@@ -209,7 +277,7 @@ export const authService = {
         } else if (err.includes('at least')) {
           message = 'Password must be at least 6 characters long.';
         } else {
-          message = error.response.data.error;
+          message = errorMsg;
         }
       } else if (error.message === 'Network Error') {
         message = 'Cannot connect to server. Please check your internet connection.';
@@ -228,8 +296,10 @@ export const authService = {
       return { success: true, data: response.data };
     } catch (error: any) {
       let message = 'Failed to change password. Please try again.';
-      if (error.response?.data?.error) {
-        const err = error.response.data.error.toLowerCase();
+      const errorMsg = error.response?.data?.detail?.error || error.response?.data?.error;
+      
+      if (errorMsg) {
+        const err = errorMsg.toLowerCase();
         if (err.includes('incorrect') || err.includes('current password')) {
           message = 'Current password is incorrect.';
         } else if (err.includes('at least 8')) {
@@ -237,7 +307,7 @@ export const authService = {
         } else if (err.includes('different')) {
           message = 'New password must be different from current password.';
         } else {
-          message = error.response.data.error;
+          message = errorMsg;
         }
       } else if (error.message === 'Network Error') {
         message = 'Cannot connect to server. Please check your internet connection.';
@@ -256,15 +326,35 @@ export const authService = {
       return { success: true, data: updatedUser };
     } catch (error: any) {
       let message = 'Failed to update profile. Please try again.';
-      if (error.response?.data?.error) {
-        const err = error.response.data.error.toLowerCase();
+      const errorMsg = error.response?.data?.detail?.error || error.response?.data?.error;
+      
+      if (errorMsg) {
+        const err = errorMsg.toLowerCase();
         if (err.includes('no fields')) {
           message = 'No changes to save.';
         } else if (err.includes('license') && err.includes('exists')) {
           message = 'This license number is already registered.';
         } else {
-          message = error.response.data.error;
+          message = errorMsg;
         }
+      } else if (error.message === 'Network Error') {
+        message = 'Cannot connect to server. Please check your internet connection.';
+      }
+      return { success: false, error: message };
+    }
+  },
+
+  // Convenience: fetch current user (used for email verification re-check)
+  getMe: async () => {
+    try {
+      const response = await api.get('/api/users/me');
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      let message = 'Failed to fetch user profile.';
+      if (error.response?.data?.detail?.error) {
+        message = error.response.data.detail.error;
+      } else if (error.response?.data?.error) {
+        message = error.response.data.error;
       } else if (error.message === 'Network Error') {
         message = 'Cannot connect to server. Please check your internet connection.';
       }
