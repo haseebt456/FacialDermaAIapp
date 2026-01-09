@@ -1,24 +1,54 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
+  ScrollView,
+  StatusBar,
 } from "react-native";
 import { authService } from "../services/authService";
-import Card from "../components/Card";
-import ScreenContainer from "../components/ScreenContainer";
-import CustomButton from "../components/CustomButton";
-import { colors, spacing, typography, shadows } from "../styles/theme";
+import { predictionService } from "../services/predictionService";
+import { colors, spacing, shadows } from "../styles/theme";
 import { useNotifications } from "../contexts/NotificationsContext";
 import Icon from "react-native-vector-icons/Ionicons";
 
+interface AnalysisItem {
+  id: string;
+  title: string;
+  date: string;
+  status: 'low' | 'attention' | 'normal';
+  confidence?: number;
+  condition?: string;
+  hasReview?: boolean;
+}
+
 export default function HomeScreen({ navigation }: any) {
   const [user, setUser] = useState<any>(null);
+  const [recentAnalyses, setRecentAnalyses] = useState<AnalysisItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const { unreadCount } = useNotifications();
 
-  useEffect(() => {
-    loadUser();
+  const loadRecentAnalyses = useCallback(async () => {
+    try {
+      const result = await predictionService.getPredictions();
+      if (result.success && result.data) {
+        const analyses = result.data.slice(0, 3).map((item: any, index: number) => ({
+          id: item._id || item.id || `analysis-${index}`,
+          title: item.condition ? `${item.condition} Scan` : `Skin Scan #${String(index + 1).padStart(3, '0')}`,
+          date: formatDate(item.createdAt || item.date),
+          status: getStatusFromCondition(item.condition, item.confidence),
+          confidence: item.confidence,
+          condition: item.condition,
+          hasReview: item.hasReview || false,
+        }));
+        setRecentAnalyses(analyses);
+      }
+    } catch (error) {
+      console.log('Failed to load recent analyses');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const loadUser = async () => {
@@ -26,316 +56,543 @@ export default function HomeScreen({ navigation }: any) {
     setUser(userData);
   };
 
+  useEffect(() => {
+    loadUser();
+    loadRecentAnalyses();
+  }, [loadRecentAnalyses]);
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'Recently';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+      return `Today, ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+    } else if (diffDays === 1) {
+      return 'Yesterday';
+    } else if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    } else {
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+  };
+
+  const getStatusFromCondition = (condition: string, confidence?: number): 'low' | 'attention' | 'normal' => {
+    const lowRiskConditions = ['normal', 'healthy'];
+    const highRiskConditions = ['melanoma'];
+    
+    if (!condition) return 'normal';
+    const conditionLower = condition.toLowerCase();
+    
+    if (lowRiskConditions.some(c => conditionLower.includes(c))) return 'low';
+    if (highRiskConditions.some(c => conditionLower.includes(c))) return 'attention';
+    if (confidence && confidence < 70) return 'attention';
+    return 'low';
+  };
+
+  const getStatusConfig = (status: string) => {
+    switch (status) {
+      case 'low':
+        return { label: 'Low Risk', bgColor: '#E8F5E9', textColor: '#2E7D32' };
+      case 'attention':
+        return { label: 'Attention', bgColor: '#FFF3E0', textColor: '#E65100' };
+      default:
+        return { label: 'Normal', bgColor: '#E3F2FD', textColor: '#1565C0' };
+    }
+  };
+
+  const getUserDisplayName = () => {
+    if (user?.name) return user.name;
+    if (user?.username) {
+      return user.username.charAt(0).toUpperCase() + user.username.slice(1);
+    }
+    return 'User';
+  };
+
   return (
-    <ScreenContainer
-      backgroundColor={colors.backgroundGray}
-      withKeyboardAvoid={false}
-    >
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={styles.avatarSmall}>
-            <Text style={styles.avatarText}>
-              {user?.username?.charAt(0).toUpperCase() || "U"}
-            </Text>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.backgroundGray} />
+      
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {user?.username?.charAt(0).toUpperCase() || "U"}
+              </Text>
+            </View>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.welcomeText}>Welcome back,</Text>
+              <Text style={styles.userName}>{getUserDisplayName()}</Text>
+            </View>
           </View>
-          <View>
-            <Text style={styles.greeting}>Welcome back,</Text>
-            <Text style={styles.username}>{user?.username || "User"}</Text>
-          </View>
-        </View>
-        <View style={styles.headerRight}>
           <TouchableOpacity
             onPress={() => navigation.navigate('Notifications')}
-            style={styles.bellButton}
+            style={styles.notificationButton}
           >
-            <Icon name="notifications-outline" size={28} color={colors.primary} />
+            <Icon name="notifications-outline" size={24} color={colors.primary} />
             {unreadCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadCount}</Text>
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </Text>
               </View>
             )}
           </TouchableOpacity>
         </View>
-      </View>
 
-      <View style={styles.mainCardContainer}>
-        <Card style={styles.mainCard}>
-          <View style={styles.mainCardHeader}>
-            <View style={styles.iconContainer}>
-              <Text style={styles.mainCardIcon}>🔬</Text>
+        {/* Hero Card - AI Analysis */}
+        <TouchableOpacity 
+          activeOpacity={0.95}
+          onPress={() => navigation.navigate("Prediction")}
+        >
+          <View style={styles.heroCard}>
+            <View style={styles.heroBadge}>
+              <Icon name="sparkles" size={12} color="#0EA5E9" />
+              <Text style={styles.heroBadgeText}>AI-Powered Analysis</Text>
             </View>
-            <View style={styles.mainCardTextContainer}>
-              <Text style={styles.cardTitle}>AI Skin Analysis</Text>
-              <Text style={styles.cardDescription}>
-                Get instant AI-powered skin condition analysis
-              </Text>
-            </View>
+            
+            <Text style={styles.heroTitle}>Check Your Skin Health</Text>
+            <Text style={styles.heroDescription}>
+              Upload a photo for instant detection of acne, eczema, or other conditions.
+            </Text>
+            
+            <TouchableOpacity 
+              style={styles.heroButton}
+              onPress={() => navigation.navigate("Prediction")}
+              activeOpacity={0.8}
+            >
+              <Icon name="camera-outline" size={18} color="#0284C7" />
+              <Text style={styles.heroButtonText}>Start New Scan</Text>
+            </TouchableOpacity>
           </View>
-          <CustomButton
-            title="Start Analysis"
-            icon="📸"
-            onPress={() => navigation.navigate("Prediction")}
-            size="large"
-            fullWidth
-          />
-        </Card>
-      </View>
-
-      <View style={styles.quickActionsTitle}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-      </View>
-
-      <View style={styles.grid}>
-        <TouchableOpacity
-          style={styles.gridItem}
-          onPress={() => navigation.navigate("History")}
-          activeOpacity={0.7}
-        >
-          <Card style={styles.gridCard}>
-            <View style={styles.gridIconContainer}>
-              <Text style={styles.gridIcon}>📋</Text>
-            </View>
-            <Text style={styles.gridTitle}>History</Text>
-            <Text style={styles.gridDescription}>Past analyses</Text>
-          </Card>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.gridItem}
-          onPress={() => navigation.navigate('MyReviewRequests')}
-          activeOpacity={0.7}
-        >
-          <Card style={styles.gridCard}>
-            <View style={styles.gridIconContainer}>
-              <Text style={styles.gridIcon}>📝</Text>
-            </View>
-            <Text style={styles.gridTitle}>Reviews</Text>
-            <Text style={styles.gridDescription}>Expert opinions</Text>
-          </Card>
-        </TouchableOpacity>
-      </View>
+        {/* Quick Access */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Quick Access</Text>
+          <View style={styles.quickAccessRow}>
+            <TouchableOpacity
+              style={styles.quickAccessCard}
+              onPress={() => navigation.navigate("History")}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.quickAccessIcon, styles.historyIconBg]}>
+                <Icon name="time-outline" size={24} color="#3B82F6" />
+              </View>
+              <Text style={styles.quickAccessTitle}>History</Text>
+            </TouchableOpacity>
 
-      <View style={styles.grid}>
-        <TouchableOpacity
-          style={styles.gridItem}
-          onPress={() => navigation.navigate("Profile")}
-          activeOpacity={0.7}
-        >
-          <Card style={styles.gridCard}>
-            <View style={styles.gridIconContainer}>
-              <Text style={styles.gridIcon}>👤</Text>
-            </View>
-            <Text style={styles.gridTitle}>Profile</Text>
-            <Text style={styles.gridDescription}>Account settings</Text>
-          </Card>
-        </TouchableOpacity>
-      </View>
-
-      <Card style={styles.infoCard}>
-        <View style={styles.infoHeader}>
-          <Text style={styles.infoIcon}>ℹ️</Text>
-          <Text style={styles.infoTitle}>About Our AI</Text>
+            <TouchableOpacity
+              style={styles.quickAccessCard}
+              onPress={() => navigation.navigate("MyReviewRequests")}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.quickAccessIcon, styles.reportsIconBg]}>
+                <Icon name="document-text-outline" size={24} color="#D97706" />
+              </View>
+              <Text style={styles.quickAccessTitle}>Reports</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-        <Text style={styles.infoText}>
-          Our AI system detects: Acne, Melanoma, Rosacea, Warts, and Perioral Dermatitis.
-        </Text>
-        <View style={styles.disclaimerBox}>
-          <Text style={styles.infoNote}>
-            ⚠️ This tool assists diagnosis but doesn't replace professional medical advice.
-          </Text>
+
+        {/* Recent Analysis */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent Analysis</Text>
+            <TouchableOpacity onPress={() => navigation.navigate("History")}>
+              <Text style={styles.viewAllText}>View All</Text>
+            </TouchableOpacity>
+          </View>
+
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading...</Text>
+            </View>
+          ) : recentAnalyses.length > 0 ? (
+            <View style={styles.analysisListCard}>
+              {recentAnalyses.map((item, index) => {
+                const statusConfig = getStatusConfig(item.status);
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[
+                      styles.analysisItem,
+                      index < recentAnalyses.length - 1 && styles.analysisItemBorder
+                    ]}
+                    onPress={() => navigation.navigate("AnalysisDetail", { predictionId: item.id })}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.analysisIconContainer}>
+                      <Icon name="scan-outline" size={20} color="#6B7280" />
+                    </View>
+                    <View style={styles.analysisContent}>
+                      <Text style={styles.analysisTitle}>{item.title}</Text>
+                      <Text style={styles.analysisDate}>
+                        {item.date}
+                        {item.confidence && ` • ${Math.round(item.confidence)}% Confidence`}
+                      </Text>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
+                      <Text style={[styles.statusText, { color: statusConfig.textColor }]}>
+                        {statusConfig.label}
+                      </Text>
+                    </View>
+                    <Icon name="chevron-forward" size={20} color="#9CA3AF" />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : (
+            <View style={styles.emptyCard}>
+              <Icon name="scan-outline" size={40} color="#D1D5DB" />
+              <Text style={styles.emptyText}>No recent analyses</Text>
+              <Text style={styles.emptySubtext}>Start your first scan to see results here</Text>
+            </View>
+          )}
         </View>
-      </Card>
-    </ScreenContainer>
+
+        {/* Expert Review Card */}
+        <TouchableOpacity 
+          style={styles.expertCard}
+          onPress={() => navigation.navigate("SelectDermatologist")}
+          activeOpacity={0.8}
+        >
+          <View style={styles.expertContent}>
+            <Text style={styles.expertLabel}>Expert Review</Text>
+            <Text style={styles.expertDescription}>
+              Get a certified dermatologist to review your latest scan results.
+            </Text>
+          </View>
+          <View style={styles.expertArrow}>
+            <Icon name="arrow-forward" size={20} color="#D97706" />
+          </View>
+        </TouchableOpacity>
+
+        {/* Bottom spacing for nav bar */}
+        <View style={styles.bottomSpacer} />
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.backgroundGray,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: spacing.xl,
+  },
+  
+  // Header
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: spacing.lg,
-    paddingTop: spacing.xl,
-    backgroundColor: colors.white,
-    ...shadows.small,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl + 10,
+    paddingBottom: spacing.md,
+    backgroundColor: colors.backgroundGray,
   },
   headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  avatarSmall: {
+  avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: '#E0F2FE',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: spacing.md,
   },
   avatarText: {
-    ...typography.h3,
-    color: colors.white,
-    fontWeight: "700",
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#0284C7',
   },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
+  headerTextContainer: {
+    justifyContent: 'center',
   },
-  bellButton: {
-    padding: spacing.sm,
-  },
-  bellIcon: {
-    fontSize: 24,
-  },
-  badge: {
-    position: "absolute",
-    right: 4,
-    top: 4,
-    backgroundColor: colors.error,
-    borderRadius: 10,
-    paddingHorizontal: 5,
-    minWidth: 20,
-    height: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  badgeText: {
-    ...typography.caption,
-    fontSize: 10,
-    color: colors.white,
-    fontWeight: "700",
-  },
-  greeting: {
-    ...typography.caption,
+  welcomeText: {
+    fontSize: 13,
     color: colors.textSecondary,
     marginBottom: 2,
   },
-  username: {
-    ...typography.h3,
+  userName: {
+    fontSize: 18,
+    fontWeight: '700',
     color: colors.text,
-    fontWeight: "700",
   },
-  mainCardContainer: {
-    padding: spacing.lg,
-    paddingBottom: spacing.md,
+  notificationButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#E0F2FE',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  mainCard: {
+  notificationBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.backgroundGray,
+  },
+  notificationBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.white,
+  },
+
+  // Hero Card
+  heroCard: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    borderRadius: 20,
     padding: spacing.xl,
+    backgroundColor: '#0EA5E9',
   },
-  mainCardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+    marginBottom: spacing.md,
+  },
+  heroBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0284C7',
+    marginLeft: 6,
+  },
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.white,
+    marginBottom: spacing.sm,
+  },
+  heroDescription: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.85)',
+    lineHeight: 20,
     marginBottom: spacing.lg,
   },
-  iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.primaryLight,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: spacing.md,
+  heroButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
   },
-  mainCardIcon: {
-    fontSize: 32,
+  heroButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0284C7',
+    marginLeft: 8,
   },
-  mainCardTextContainer: {
-    flex: 1,
-  },
-  cardTitle: {
-    ...typography.h2,
-    color: colors.text,
-    fontWeight: "700",
-    marginBottom: spacing.xs,
-  },
-  cardDescription: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
-  quickActionsTitle: {
+
+  // Section
+  sectionContainer: {
+    marginTop: spacing.xl,
     paddingHorizontal: spacing.lg,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: spacing.md,
   },
   sectionTitle: {
-    ...typography.h3,
+    fontSize: 16,
+    fontWeight: '700',
     color: colors.text,
-    fontWeight: "700",
-  },
-  grid: {
-    flexDirection: "row",
-    paddingHorizontal: spacing.lg,
     marginBottom: spacing.md,
   },
-  gridItem: {
+  viewAllText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+
+  // Quick Access
+  quickAccessRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  quickAccessCard: {
     flex: 1,
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    padding: spacing.lg,
+    alignItems: 'center',
+    ...shadows.small,
+  },
+  quickAccessIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  quickAccessTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+
+  // Analysis List
+  analysisListCard: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    ...shadows.small,
+    overflow: 'hidden',
+  },
+  analysisItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    paddingVertical: spacing.md + 4,
+  },
+  analysisItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  analysisIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: spacing.md,
   },
-  gridCard: {
-    alignItems: "center",
-    padding: spacing.lg,
-    minHeight: 140,
-    justifyContent: "center",
+  analysisContent: {
+    flex: 1,
   },
-  gridIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.backgroundGray,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: spacing.sm,
-  },
-  gridIcon: {
-    fontSize: 28,
-  },
-  gridTitle: {
-    ...typography.body,
+  analysisTitle: {
+    fontSize: 14,
+    fontWeight: '600',
     color: colors.text,
-    fontWeight: "600",
-    marginBottom: spacing.xs,
-    marginTop: spacing.xs,
+    marginBottom: 2,
   },
-  gridDescription: {
-    ...typography.caption,
+  analysisDate: {
+    fontSize: 12,
     color: colors.textSecondary,
-    textAlign: "center",
   },
-  infoCard: {
-    margin: spacing.lg,
-    marginTop: 0,
-    padding: spacing.lg,
-  },
-  infoHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: spacing.sm,
-  },
-  infoIcon: {
-    fontSize: 24,
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
     marginRight: spacing.sm,
   },
-  infoTitle: {
-    ...typography.h3,
-    color: colors.text,
-    fontWeight: "600",
+  statusText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
-  infoText: {
-    ...typography.bodySmall,
+
+  // Empty State
+  emptyCard: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    padding: spacing.xl,
+    alignItems: 'center',
+    ...shadows.small,
+  },
+  emptyText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+    marginTop: spacing.md,
+  },
+  emptySubtext: {
+    fontSize: 13,
     color: colors.textSecondary,
-    lineHeight: 22,
-    marginBottom: spacing.md,
+    marginTop: spacing.xs,
+    textAlign: 'center',
   },
-  disclaimerBox: {
-    backgroundColor: colors.primaryLight,
-    padding: spacing.md,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.warning,
+
+  // Loading
+  loadingContainer: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    padding: spacing.xl,
+    alignItems: 'center',
+    ...shadows.small,
   },
-  infoNote: {
-    ...typography.bodySmall,
-    color: colors.text,
-    lineHeight: 20,
+  loadingText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+
+  // Expert Card
+  expertCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.xl,
+    borderRadius: 16,
+    padding: spacing.lg,
+  },
+  expertContent: {
+    flex: 1,
+  },
+  expertLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#D97706',
+    marginBottom: 4,
+  },
+  expertDescription: {
+    fontSize: 13,
+    color: '#92400E',
+    lineHeight: 18,
+  },
+  expertArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: spacing.md,
+  },
+  
+  // Quick Access Icon Backgrounds
+  historyIconBg: {
+    backgroundColor: '#EFF6FF',
+  },
+  reportsIconBg: {
+    backgroundColor: '#FEF3C7',
+  },
+  
+  // Bottom Spacer
+  bottomSpacer: {
+    height: 100,
   },
 });
