@@ -600,117 +600,494 @@ export default function AuthScreen({ navigation }: any) {
                     </TouchableOpacity>
                   </View>
 
-                  {/* Username Input */}
-                  <Text style={styles.label}>Username</Text>
-                  <View style={[styles.inputContainer, errors.username && styles.inputError]}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Choose a username"
-                      placeholderTextColor={COLORS.textMuted}
-                      value={username}
-                      onChangeText={(text) => {
-                        setUsername(text);
-                        setErrors({ ...errors, username: '' });
-                      }}
-                      autoCapitalize="none"
-                    />
-                    <Text style={styles.inputIcon}>👤</Text>
-                  </View>
-                  {errors.username && <Text style={styles.errorText}>{errors.username}</Text>}
-
-                  {/* Email Input */}
-                  <Text style={styles.label}>Email</Text>
-                  <View style={[styles.inputContainer, errors.email && styles.inputError]}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="name@example.com"
-                      placeholderTextColor={COLORS.textMuted}
-                      value={email}
-                      onChangeText={(text) => {
-                        setEmail(text);
-                        setErrors({ ...errors, email: '' });
-                      }}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                    />
-                    <Text style={styles.inputIcon}>✉️</Text>
-                  </View>
-                  {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-
-                  {/* Password Input */}
-                  <Text style={styles.label}>Password</Text>
-                  <View style={[styles.inputContainer, errors.password && styles.inputError]}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Create a password"
-                      placeholderTextColor={COLORS.textMuted}
-                      value={password}
-                      onChangeText={(text) => {
-                        setPassword(text);
-                        setErrors({ ...errors, password: '' });
-                      }}
-                      secureTextEntry={!showPassword}
-                    />
-                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                      <Text style={styles.inputIcon}>{showPassword ? '👁️' : '🔒'}</Text>
-                    </TouchableOpacity>
-                  </View>
-                  {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
-                  <Text style={styles.helperText}>At least 6 characters</Text>
-
-                  {/* Confirm Password Input */}
-                  <Text style={styles.label}>Confirm Password</Text>
-                  <View style={[styles.inputContainer, errors.confirmPassword && styles.inputError]}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Confirm your password"
-                      placeholderTextColor={COLORS.textMuted}
-                      value={confirmPassword}
-                      onChangeText={(text) => {
-                        setConfirmPassword(text);
-                        setErrors({ ...errors, confirmPassword: '' });
-                      }}
-                      secureTextEntry={!showConfirmPassword}
-                    />
-                    <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-                      <Text style={styles.inputIcon}>{showConfirmPassword ? '👁️' : '🔒'}</Text>
-                    </TouchableOpacity>
-                  </View>
-                  {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
-
-                  {/* License Number (for dermatologists) */}
-                  {userRole === 'dermatologist' && (
+                  {/* Dermatologist Multi-Step Flow */}
+                  {userRole === 'dermatologist' ? (
                     <>
-                      <Text style={styles.label}>Medical License Number</Text>
-                      <View style={[styles.inputContainer, errors.license && styles.inputError]}>
+                      {/* Step Indicator */}
+                      <View style={styles.stepIndicator}>
+                        <Text style={styles.stepText}>Step {signupStep} of 3</Text>
+                        <Text style={styles.stepSubtext}>Dermatologist registration</Text>
+                      </View>
+
+                      {/* Step 1: Basic Info */}
+                      {signupStep === 1 && (
+                        <>
+                          {/* Full Name */}
+                          <Text style={styles.label}>Full Name *</Text>
+                          <View style={[styles.inputContainer, errors.name && styles.inputError]}>
+                            <TextInput
+                              style={styles.input}
+                              placeholder="Dr. John Doe"
+                              placeholderTextColor={COLORS.textMuted}
+                              value={name}
+                              onChangeText={(text) => {
+                                setName(text);
+                                setErrors({ ...errors, name: '' });
+                              }}
+                            />
+                            <Text style={styles.inputIcon}>👤</Text>
+                          </View>
+                          {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+
+                          {/* Username */}
+                          <Text style={styles.label}>Username *</Text>
+                          <View style={[
+                            styles.inputContainer, 
+                            errors.username && styles.inputError,
+                            usernameCheck.available === true && styles.inputSuccess,
+                            usernameCheck.available === false && styles.inputError,
+                          ]}>
+                            <TextInput
+                              style={styles.input}
+                              placeholder="Choose a username"
+                              placeholderTextColor={COLORS.textMuted}
+                              value={username}
+                              onChangeText={(text) => {
+                                setUsername(text);
+                                setErrors({ ...errors, username: '' });
+                              }}
+                              autoCapitalize="none"
+                            />
+                            {usernameCheck.checking ? (
+                              <ActivityIndicator size="small" color={COLORS.primary} />
+                            ) : (
+                              <Text style={styles.inputIcon}>👤</Text>
+                            )}
+                          </View>
+                          {username.trim() && (
+                            <Text style={[
+                              styles.helperText,
+                              usernameCheck.available === true && styles.successText,
+                              usernameCheck.available === false && styles.errorText,
+                            ]}>
+                              {usernameCheck.checking ? 'Checking...' : usernameCheck.message}
+                            </Text>
+                          )}
+                          {errors.username && <Text style={styles.errorText}>{errors.username}</Text>}
+
+                          {/* Email */}
+                          <Text style={styles.label}>Email *</Text>
+                          <View style={[styles.inputContainer, errors.email && styles.inputError]}>
+                            <TextInput
+                              style={styles.input}
+                              placeholder="name@example.com"
+                              placeholderTextColor={COLORS.textMuted}
+                              value={email}
+                              onChangeText={(text) => {
+                                setEmail(text);
+                                setErrors({ ...errors, email: '' });
+                              }}
+                              keyboardType="email-address"
+                              autoCapitalize="none"
+                            />
+                            <Text style={styles.inputIcon}>✉️</Text>
+                          </View>
+                          {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+                        </>
+                      )}
+
+                      {/* Step 2: Professional Info */}
+                      {signupStep === 2 && (
+                        <>
+                          {/* License Number */}
+                          <Text style={styles.label}>Medical License Number *</Text>
+                          <View style={[styles.inputContainer, errors.license && styles.inputError]}>
+                            <TextInput
+                              style={styles.input}
+                              placeholder="e.g., PMC-12345-KPK"
+                              placeholderTextColor={COLORS.textMuted}
+                              value={licenseNumber}
+                              onChangeText={(text) => {
+                                setLicenseNumber(text);
+                                setErrors({ ...errors, license: '' });
+                              }}
+                              autoCapitalize="characters"
+                            />
+                            <Text style={styles.inputIcon}>📜</Text>
+                          </View>
+                          {errors.license && <Text style={styles.errorText}>{errors.license}</Text>}
+
+                          {/* Specialization Dropdown */}
+                          <Text style={styles.label}>Specialization *</Text>
+                          <View style={styles.dropdownContainer}>
+                            {specializationOptions.map((option) => (
+                              <TouchableOpacity
+                                key={option}
+                                style={[
+                                  styles.dropdownOption,
+                                  specialization === option && styles.dropdownOptionActive,
+                                ]}
+                                onPress={() => {
+                                  setSpecialization(option);
+                                  setErrors({ ...errors, specialization: '' });
+                                }}
+                              >
+                                <Text style={[
+                                  styles.dropdownOptionText,
+                                  specialization === option && styles.dropdownOptionTextActive,
+                                ]}>
+                                  {option}
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                          {errors.specialization && <Text style={styles.errorText}>{errors.specialization}</Text>}
+
+                          {/* Custom Specialization */}
+                          {specialization === 'Other' && (
+                            <>
+                              <Text style={styles.label}>Specify Specialization *</Text>
+                              <View style={[styles.inputContainer, errors.customSpecialization && styles.inputError]}>
+                                <TextInput
+                                  style={styles.input}
+                                  placeholder="Enter your specialization"
+                                  placeholderTextColor={COLORS.textMuted}
+                                  value={customSpecialization}
+                                  onChangeText={(text) => {
+                                    setCustomSpecialization(text);
+                                    setErrors({ ...errors, customSpecialization: '' });
+                                  }}
+                                />
+                                <Text style={styles.inputIcon}>🔬</Text>
+                              </View>
+                              {errors.customSpecialization && <Text style={styles.errorText}>{errors.customSpecialization}</Text>}
+                            </>
+                          )}
+
+                          {/* Clinic (Optional) */}
+                          <Text style={styles.label}>Clinic / Hospital (Optional)</Text>
+                          <View style={styles.inputContainer}>
+                            <TextInput
+                              style={styles.input}
+                              placeholder="e.g., City Hospital"
+                              placeholderTextColor={COLORS.textMuted}
+                              value={clinic}
+                              onChangeText={setClinic}
+                            />
+                            <Text style={styles.inputIcon}>🏥</Text>
+                          </View>
+
+                          {/* Years of Experience */}
+                          <Text style={styles.label}>Years of Experience *</Text>
+                          <View style={[styles.inputContainer, errors.experience && styles.inputError]}>
+                            <TextInput
+                              style={styles.input}
+                              placeholder="e.g., 5"
+                              placeholderTextColor={COLORS.textMuted}
+                              value={experience}
+                              onChangeText={(text) => {
+                                setExperience(text);
+                                setErrors({ ...errors, experience: '' });
+                              }}
+                              keyboardType="numeric"
+                            />
+                            <Text style={styles.inputIcon}>📅</Text>
+                          </View>
+                          {errors.experience && <Text style={styles.errorText}>{errors.experience}</Text>}
+                        </>
+                      )}
+
+                      {/* Step 3: Password */}
+                      {signupStep === 3 && (
+                        <>
+                          {/* Password */}
+                          <Text style={styles.label}>Password *</Text>
+                          <View style={[styles.inputContainer, errors.password && styles.inputError]}>
+                            <TextInput
+                              style={styles.input}
+                              placeholder="Create a password"
+                              placeholderTextColor={COLORS.textMuted}
+                              value={password}
+                              onChangeText={(text) => {
+                                setPassword(text);
+                                setErrors({ ...errors, password: '' });
+                              }}
+                              secureTextEntry={!showPassword}
+                            />
+                            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                              <Text style={styles.inputIcon}>{showPassword ? '👁️' : '🔒'}</Text>
+                            </TouchableOpacity>
+                          </View>
+                          {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+
+                          {/* Password Requirements */}
+                          <View style={styles.passwordRequirements}>
+                            <View style={styles.passwordRule}>
+                              <Text style={[styles.passwordRuleIcon, passwordValidation.rules.minLength && styles.passwordRuleIconValid]}>
+                                {passwordValidation.rules.minLength ? '✓' : '○'}
+                              </Text>
+                              <Text style={[styles.passwordRuleText, passwordValidation.rules.minLength && styles.passwordRuleTextValid]}>
+                                At least 8 characters
+                              </Text>
+                            </View>
+                            <View style={styles.passwordRule}>
+                              <Text style={[styles.passwordRuleIcon, passwordValidation.rules.hasUppercase && styles.passwordRuleIconValid]}>
+                                {passwordValidation.rules.hasUppercase ? '✓' : '○'}
+                              </Text>
+                              <Text style={[styles.passwordRuleText, passwordValidation.rules.hasUppercase && styles.passwordRuleTextValid]}>
+                                One uppercase letter
+                              </Text>
+                            </View>
+                            <View style={styles.passwordRule}>
+                              <Text style={[styles.passwordRuleIcon, passwordValidation.rules.hasLowercase && styles.passwordRuleIconValid]}>
+                                {passwordValidation.rules.hasLowercase ? '✓' : '○'}
+                              </Text>
+                              <Text style={[styles.passwordRuleText, passwordValidation.rules.hasLowercase && styles.passwordRuleTextValid]}>
+                                One lowercase letter
+                              </Text>
+                            </View>
+                            <View style={styles.passwordRule}>
+                              <Text style={[styles.passwordRuleIcon, passwordValidation.rules.hasNumber && styles.passwordRuleIconValid]}>
+                                {passwordValidation.rules.hasNumber ? '✓' : '○'}
+                              </Text>
+                              <Text style={[styles.passwordRuleText, passwordValidation.rules.hasNumber && styles.passwordRuleTextValid]}>
+                                One number
+                              </Text>
+                            </View>
+                            <View style={styles.passwordRule}>
+                              <Text style={[styles.passwordRuleIcon, passwordValidation.rules.hasSpecial && styles.passwordRuleIconValid]}>
+                                {passwordValidation.rules.hasSpecial ? '✓' : '○'}
+                              </Text>
+                              <Text style={[styles.passwordRuleText, passwordValidation.rules.hasSpecial && styles.passwordRuleTextValid]}>
+                                One special character
+                              </Text>
+                            </View>
+                          </View>
+
+                          {/* Confirm Password */}
+                          <Text style={styles.label}>Confirm Password *</Text>
+                          <View style={[
+                            styles.inputContainer, 
+                            errors.confirmPassword && styles.inputError,
+                            confirmPassword && password === confirmPassword && styles.inputSuccess,
+                            confirmPassword && password !== confirmPassword && styles.inputError,
+                          ]}>
+                            <TextInput
+                              style={styles.input}
+                              placeholder="Confirm your password"
+                              placeholderTextColor={COLORS.textMuted}
+                              value={confirmPassword}
+                              onChangeText={(text) => {
+                                setConfirmPassword(text);
+                                setErrors({ ...errors, confirmPassword: '' });
+                              }}
+                              secureTextEntry={!showConfirmPassword}
+                            />
+                            <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                              <Text style={styles.inputIcon}>{showConfirmPassword ? '👁️' : '🔒'}</Text>
+                            </TouchableOpacity>
+                          </View>
+                          {confirmPassword && password !== confirmPassword && (
+                            <Text style={styles.errorText}>Passwords do not match</Text>
+                          )}
+                          {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
+                        </>
+                      )}
+
+                      {/* Step Navigation Buttons */}
+                      <View style={styles.stepButtons}>
+                        {signupStep > 1 && (
+                          <TouchableOpacity
+                            style={styles.backButton}
+                            onPress={handleDermStepBack}
+                          >
+                            <Text style={styles.backButtonText}>← Back</Text>
+                          </TouchableOpacity>
+                        )}
+                        <TouchableOpacity
+                          style={[
+                            styles.primaryButton,
+                            styles.stepButton,
+                            loading && styles.primaryButtonDisabled,
+                            signupStep === 1 && !canProceedStep1 && styles.primaryButtonDisabled,
+                            signupStep === 2 && !canProceedStep2 && styles.primaryButtonDisabled,
+                          ]}
+                          onPress={handleContinue}
+                          disabled={loading || (signupStep === 1 && !canProceedStep1) || (signupStep === 2 && !canProceedStep2)}
+                        >
+                          <Text style={styles.primaryButtonText}>
+                            {loading ? 'Creating...' : signupStep < 3 ? 'Next' : 'Create account'}
+                          </Text>
+                          {!loading && <Text style={styles.buttonArrow}>→</Text>}
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  ) : (
+                    /* Patient Single-Step Flow */
+                    <>
+                      {/* Username */}
+                      <Text style={styles.label}>Username *</Text>
+                      <View style={[
+                        styles.inputContainer, 
+                        errors.username && styles.inputError,
+                        usernameCheck.available === true && styles.inputSuccess,
+                        usernameCheck.available === false && styles.inputError,
+                      ]}>
                         <TextInput
                           style={styles.input}
-                          placeholder="e.g., PMC-12345-KPK"
+                          placeholder="Choose a username"
                           placeholderTextColor={COLORS.textMuted}
-                          value={licenseNumber}
+                          value={username}
                           onChangeText={(text) => {
-                            setLicenseNumber(text);
-                            setErrors({ ...errors, license: '' });
+                            setUsername(text);
+                            setErrors({ ...errors, username: '' });
                           }}
-                          autoCapitalize="characters"
+                          autoCapitalize="none"
                         />
-                        <Text style={styles.inputIcon}>🏥</Text>
+                        {usernameCheck.checking ? (
+                          <ActivityIndicator size="small" color={COLORS.primary} />
+                        ) : (
+                          <Text style={styles.inputIcon}>👤</Text>
+                        )}
                       </View>
-                      {errors.license && <Text style={styles.errorText}>{errors.license}</Text>}
+                      {username.trim() && (
+                        <Text style={[
+                          styles.helperText,
+                          usernameCheck.available === true && styles.successText,
+                          usernameCheck.available === false && styles.errorText,
+                        ]}>
+                          {usernameCheck.checking ? 'Checking...' : usernameCheck.message}
+                        </Text>
+                      )}
+                      {errors.username && <Text style={styles.errorText}>{errors.username}</Text>}
+
+                      {/* Full Name (Optional for patients) */}
+                      <Text style={styles.label}>Full Name (Optional)</Text>
+                      <View style={styles.inputContainer}>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Your name"
+                          placeholderTextColor={COLORS.textMuted}
+                          value={name}
+                          onChangeText={setName}
+                        />
+                        <Text style={styles.inputIcon}>👤</Text>
+                      </View>
+
+                      {/* Email */}
+                      <Text style={styles.label}>Email *</Text>
+                      <View style={[styles.inputContainer, errors.email && styles.inputError]}>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="name@example.com"
+                          placeholderTextColor={COLORS.textMuted}
+                          value={email}
+                          onChangeText={(text) => {
+                            setEmail(text);
+                            setErrors({ ...errors, email: '' });
+                          }}
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                        />
+                        <Text style={styles.inputIcon}>✉️</Text>
+                      </View>
+                      {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+
+                      {/* Password */}
+                      <Text style={styles.label}>Password *</Text>
+                      <View style={[styles.inputContainer, errors.password && styles.inputError]}>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Create a password"
+                          placeholderTextColor={COLORS.textMuted}
+                          value={password}
+                          onChangeText={(text) => {
+                            setPassword(text);
+                            setErrors({ ...errors, password: '' });
+                          }}
+                          secureTextEntry={!showPassword}
+                        />
+                        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                          <Text style={styles.inputIcon}>{showPassword ? '👁️' : '🔒'}</Text>
+                        </TouchableOpacity>
+                      </View>
+                      {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+
+                      {/* Password Requirements for Patient */}
+                      <View style={styles.passwordRequirements}>
+                        <View style={styles.passwordRule}>
+                          <Text style={[styles.passwordRuleIcon, passwordValidation.rules.minLength && styles.passwordRuleIconValid]}>
+                            {passwordValidation.rules.minLength ? '✓' : '○'}
+                          </Text>
+                          <Text style={[styles.passwordRuleText, passwordValidation.rules.minLength && styles.passwordRuleTextValid]}>
+                            At least 8 characters
+                          </Text>
+                        </View>
+                        <View style={styles.passwordRule}>
+                          <Text style={[styles.passwordRuleIcon, passwordValidation.rules.hasUppercase && styles.passwordRuleIconValid]}>
+                            {passwordValidation.rules.hasUppercase ? '✓' : '○'}
+                          </Text>
+                          <Text style={[styles.passwordRuleText, passwordValidation.rules.hasUppercase && styles.passwordRuleTextValid]}>
+                            One uppercase letter
+                          </Text>
+                        </View>
+                        <View style={styles.passwordRule}>
+                          <Text style={[styles.passwordRuleIcon, passwordValidation.rules.hasLowercase && styles.passwordRuleIconValid]}>
+                            {passwordValidation.rules.hasLowercase ? '✓' : '○'}
+                          </Text>
+                          <Text style={[styles.passwordRuleText, passwordValidation.rules.hasLowercase && styles.passwordRuleTextValid]}>
+                            One lowercase letter
+                          </Text>
+                        </View>
+                        <View style={styles.passwordRule}>
+                          <Text style={[styles.passwordRuleIcon, passwordValidation.rules.hasNumber && styles.passwordRuleIconValid]}>
+                            {passwordValidation.rules.hasNumber ? '✓' : '○'}
+                          </Text>
+                          <Text style={[styles.passwordRuleText, passwordValidation.rules.hasNumber && styles.passwordRuleTextValid]}>
+                            One number
+                          </Text>
+                        </View>
+                        <View style={styles.passwordRule}>
+                          <Text style={[styles.passwordRuleIcon, passwordValidation.rules.hasSpecial && styles.passwordRuleIconValid]}>
+                            {passwordValidation.rules.hasSpecial ? '✓' : '○'}
+                          </Text>
+                          <Text style={[styles.passwordRuleText, passwordValidation.rules.hasSpecial && styles.passwordRuleTextValid]}>
+                            One special character
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Confirm Password */}
+                      <Text style={styles.label}>Confirm Password *</Text>
+                      <View style={[
+                        styles.inputContainer, 
+                        errors.confirmPassword && styles.inputError,
+                        confirmPassword && password === confirmPassword && styles.inputSuccess,
+                        confirmPassword && password !== confirmPassword && styles.inputError,
+                      ]}>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Confirm your password"
+                          placeholderTextColor={COLORS.textMuted}
+                          value={confirmPassword}
+                          onChangeText={(text) => {
+                            setConfirmPassword(text);
+                            setErrors({ ...errors, confirmPassword: '' });
+                          }}
+                          secureTextEntry={!showConfirmPassword}
+                        />
+                        <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                          <Text style={styles.inputIcon}>{showConfirmPassword ? '👁️' : '🔒'}</Text>
+                        </TouchableOpacity>
+                      </View>
+                      {confirmPassword && password !== confirmPassword && (
+                        <Text style={styles.errorText}>Passwords do not match</Text>
+                      )}
+                      {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
+
+                      {/* Create Account Button */}
+                      <TouchableOpacity 
+                        style={[styles.primaryButton, loading && styles.primaryButtonDisabled]}
+                        onPress={handleContinue}
+                        disabled={loading || usernameCheck.available === false}
+                      >
+                        <Text style={styles.primaryButtonText}>
+                          {loading ? 'Creating account...' : 'Create account'}
+                        </Text>
+                        {!loading && <Text style={styles.buttonArrow}>→</Text>}
+                      </TouchableOpacity>
                     </>
                   )}
-
-                  {/* Create Account Button */}
-                  <TouchableOpacity 
-                    style={[styles.primaryButton, loading && styles.primaryButtonDisabled]}
-                    onPress={handleContinue}
-                    disabled={loading}
-                  >
-                    <Text style={styles.primaryButtonText}>
-                      {loading ? 'Creating account...' : 'Create account'}
-                    </Text>
-                    {!loading && <Text style={styles.buttonArrow}>→</Text>}
-                  </TouchableOpacity>
 
                   {/* Login Link */}
                   <Text style={styles.footerText}>
@@ -1014,5 +1391,115 @@ const styles = StyleSheet.create({
   roleButtonTextActive: {
     color: COLORS.primary,
     fontWeight: '700',
+  },
+  inputSuccess: {
+    borderColor: '#48bb78',
+  },
+  successText: {
+    color: '#48bb78',
+  },
+  stepIndicator: {
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+    paddingVertical: 12,
+    backgroundColor: COLORS.secondary,
+    borderRadius: 12,
+  },
+  stepText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  stepSubtext: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  stepButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 24,
+    gap: 12,
+  },
+  backButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.inputBg,
+    borderRadius: 24,
+    height: 48,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  stepButton: {
+    flex: 1,
+    width: 'auto',
+    marginTop: 0,
+    marginBottom: 0,
+    alignSelf: 'auto',
+  },
+  dropdownContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  dropdownOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: COLORS.inputBg,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  dropdownOptionActive: {
+    backgroundColor: COLORS.secondary,
+    borderColor: COLORS.primary,
+  },
+  dropdownOptionText: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+  },
+  dropdownOptionTextActive: {
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  passwordRequirements: {
+    marginTop: 8,
+    marginBottom: 8,
+    backgroundColor: COLORS.inputBg,
+    borderRadius: 12,
+    padding: 12,
+  },
+  passwordRule: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  passwordRuleIcon: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    marginRight: 8,
+    width: 20,
+    textAlign: 'center',
+  },
+  passwordRuleIconValid: {
+    color: '#48bb78',
+  },
+  passwordRuleText: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+  },
+  passwordRuleTextValid: {
+    color: '#48bb78',
   },
 });
