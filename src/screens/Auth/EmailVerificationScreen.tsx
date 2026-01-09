@@ -46,7 +46,7 @@ export default function EmailVerificationScreen({ route, navigation }: any) {
             </Text>
             <CustomButton
               title="Go to Login"
-              onPress={() => navigation.navigate("Login")}
+              onPress={() => navigation.navigate("Auth")}
               fullWidth
               size="large"
             />
@@ -58,7 +58,7 @@ export default function EmailVerificationScreen({ route, navigation }: any) {
             <Text style={styles.subtitle}>{error}</Text>
             <CustomButton
               title="Back to Login"
-              onPress={() => navigation.navigate("Login")}
+              onPress={() => navigation.navigate("Auth")}
               fullWidth
               size="large"
             />

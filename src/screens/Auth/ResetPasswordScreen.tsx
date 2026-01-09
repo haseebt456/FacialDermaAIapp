@@ -37,7 +37,7 @@ export default function ResetPasswordScreen({ route, navigation }: any) {
       Alert.alert("Success", "Password reset successfully! You can now login with your new password.", [
         {
           text: "OK",
-          onPress: () => navigation.navigate("Login"),
+          onPress: () => navigation.navigate("Auth"),
         },
       ]);
     } else {
