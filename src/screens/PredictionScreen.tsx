@@ -8,15 +8,31 @@ import {
   TouchableOpacity,
   PermissionsAndroid,
   Platform,
+  ScrollView,
+  Dimensions,
+  InteractionManager,
 } from "react-native";
 import { launchCamera, launchImageLibrary } from "react-native-image-picker";
 import { predictionService, Prediction } from "../services/predictionService";
 import { authService } from "../services/authService";
-import CustomButton from "../components/CustomButton";
-import Card from "../components/Card";
 import Loading from "../components/Loading";
-import ScreenContainer from "../components/ScreenContainer";
-import { colors, spacing, typography, shadows, borderRadius } from "../styles/theme";
+
+const { width } = Dimensions.get("window");
+
+// Colors matching the design
+const COLORS = {
+  background: "#f7fafb",
+  primary: "#2b6cb0",
+  secondary: "#d6f6f1",
+  card: "#ffffff",
+  text: "#1a365d",
+  textSecondary: "#64748b",
+  textMuted: "#94a3b8",
+  border: "#e2e8f0",
+  success: "#48bb78",
+  error: "#e53e3e",
+  warning: "#ed8936",
+};
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB
 
@@ -33,19 +49,28 @@ export default function PredictionScreen({ navigation }: any) {
     const checkRole = async () => {
       const user = await authService.getStoredUser();
       setUserRole(user?.role || null);
-      
-      if (user?.role === 'dermatologist') {
-        Alert.alert(
-          "Access Restricted",
-          "Analysis feature is only available for patients. Dermatologists can review patient analyses from the Reviews section.",
-          [{ text: "OK", onPress: () => navigation.goBack() }]
-        );
+
+      if (user?.role === "dermatologist") {
+        // Wait for interactions to complete before showing alert
+        InteractionManager.runAfterInteractions(() => {
+          setTimeout(() => {
+            Alert.alert(
+              "Access Restricted",
+              "Analysis feature is only available for patients. Dermatologists can review patient analyses from the Reviews section.",
+              [{ text: "OK", onPress: () => navigation.goBack() }]
+            );
+          }, 100);
+        });
       }
     };
     checkRole();
   }, [navigation]);
 
-  const validateAsset = (asset: { uri?: string | null; fileSize?: number | null; type?: string | null }) => {
+  const validateAsset = (asset: {
+    uri?: string | null;
+    fileSize?: number | null;
+    type?: string | null;
+  }) => {
     if (asset.fileSize && asset.fileSize > MAX_IMAGE_BYTES) {
       Alert.alert("Image Too Large", "Please choose an image under 5MB.");
       return false;
@@ -131,21 +156,14 @@ export default function PredictionScreen({ navigation }: any) {
   };
 
   const pickImage = () => {
-    Alert.alert(
-      "Select Image",
-      "Choose an option",
-      [
-        {
-          text: "Camera",
-          onPress: openCamera,
-        },
-        {
-          text: "Gallery",
-          onPress: openGallery,
-        },
+    console.log("pickImage called");
+    InteractionManager.runAfterInteractions(() => {
+      Alert.alert("Select Image", "Choose an option", [
+        { text: "Camera", onPress: openCamera },
+        { text: "Gallery", onPress: openGallery },
         { text: "Cancel", style: "cancel" },
-      ]
-    );
+      ]);
+    });
   };
 
   const analyzeSkin = async () => {
@@ -162,26 +180,34 @@ export default function PredictionScreen({ navigation }: any) {
       setPrediction(result.data);
       Alert.alert(
         "Analysis Complete",
-        `Detected: ${result.data.predicted_label}\nConfidence: ${(result.data.confidence_score * 100).toFixed(1)}%`
+        `Detected: ${result.data.predicted_label}\nConfidence: ${(
+          result.data.confidence_score * 100
+        ).toFixed(1)}%`
       );
       // Wait a moment for backend to save, then fetch to get the prediction ID
       setTimeout(async () => {
         const list = await predictionService.getPredictions();
         if (list.success && list.data && list.data.length > 0) {
-          // Get the most recent prediction (sorted by date)
-          const sortedPredictions = [...list.data].sort((a: any, b: any) => 
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          const sortedPredictions = [...list.data].sort(
+            (a: any, b: any) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
           setCreatedPredictionId(sortedPredictions[0].id);
           setLatestPrediction(sortedPredictions[0]);
         }
       }, 1500);
     } else {
-      const errorLower = result.error?.toLowerCase() || '';
+      const errorLower = result.error?.toLowerCase() || "";
       if (errorLower.includes("blur")) {
-        Alert.alert("Image Too Blurry", "The image quality is not clear enough. Please take another photo with better focus and lighting.");
+        Alert.alert(
+          "Image Too Blurry",
+          "The image quality is not clear enough. Please take another photo with better focus and lighting."
+        );
       } else if (errorLower.includes("no face")) {
-        Alert.alert("No Face Detected", "Please ensure your face is clearly visible in the image and try again.");
+        Alert.alert(
+          "No Face Detected",
+          "Please ensure your face is clearly visible in the image and try again."
+        );
       } else {
         Alert.alert("Analysis Failed", result.error);
       }
@@ -190,14 +216,14 @@ export default function PredictionScreen({ navigation }: any) {
 
   const getConditionColor = (label: string) => {
     const colorMap: any = {
-      Acne: colors.acne,
-      Melanoma: colors.melanoma,
-      Normal: colors.normal,
-      Perioral_Dermatitis: colors.perioral,
-      Rosacea: colors.rosacea,
-      Warts: colors.warts,
+      Acne: "#e53e3e",
+      Melanoma: "#805ad5",
+      Normal: "#48bb78",
+      Perioral_Dermatitis: "#ed8936",
+      Rosacea: "#f56565",
+      Warts: "#718096",
     };
-    return colorMap[label] || colors.primary;
+    return colorMap[label] || COLORS.primary;
   };
 
   const lowConfidence = prediction && prediction.confidence_score < 0.6;
@@ -215,353 +241,697 @@ export default function PredictionScreen({ navigation }: any) {
   };
 
   // Block dermatologists from accessing analysis
-  if (userRole === 'dermatologist') {
+  if (userRole === "dermatologist") {
     return (
-      <ScreenContainer
-        backgroundColor={colors.backgroundGray}
-        withKeyboardAvoid={false}
-      >
+      <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backText}>← Back</Text>
+            <Text style={styles.backArrow}>‹</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>AI Skin Analysis</Text>
-          <View style={styles.spacer} />
+          <Text style={styles.headerTitle}>New Analysis</Text>
+          <View style={styles.headerSpacer} />
         </View>
-        <Card style={styles.uploadCard}>
-          <View style={styles.uploadArea}>
-            <View style={styles.uploadIconContainer}>
-              <Text style={styles.uploadIcon}>🚫</Text>
-            </View>
-            <Text style={styles.uploadText}>Access Restricted</Text>
-            <Text style={styles.uploadSubtext}>
-              Analysis feature is only available for patients. As a dermatologist, you can review patient analyses from the Reviews section.
+        <View style={styles.content}>
+          <View style={styles.restrictedCard}>
+            <Text style={styles.restrictedIcon}>🚫</Text>
+            <Text style={styles.restrictedTitle}>Access Restricted</Text>
+            <Text style={styles.restrictedText}>
+              Analysis feature is only available for patients. As a dermatologist, you can
+              review patient analyses from the Reviews section.
             </Text>
           </View>
-        </Card>
-      </ScreenContainer>
+        </View>
+      </View>
     );
   }
 
-  return (
-    <ScreenContainer
-      backgroundColor={colors.backgroundGray}
-      withKeyboardAvoid={false}
-    >
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>AI Skin Analysis</Text>
-        <View style={styles.spacer} />
-      </View>
-
-      <Card style={styles.uploadCard}>
-        {!selectedImage ? (
-          <TouchableOpacity style={styles.uploadArea} onPress={pickImage} activeOpacity={0.7}>
-            <View style={styles.uploadIconContainer}>
-              <Text style={styles.uploadIcon}>📷</Text>
-            </View>
-            <Text style={styles.uploadText}>Take or Select Photo</Text>
-            <Text style={styles.uploadSubtext}>
-              Ensure your face is clearly visible with good lighting
-            </Text>
+  // Results view after analysis
+  if (prediction) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Text style={styles.backArrow}>‹</Text>
           </TouchableOpacity>
-        ) : (
-          <View>
-            <Image source={{ uri: selectedImage }} style={styles.previewImage} />
-            <CustomButton
-              title="Change Image"
-              icon="🔄"
-              onPress={pickImage}
-              variant="outline"
-              size="medium"
-              fullWidth
-              style={styles.changeButton}
-            />
-          </View>
-        )}
-      </Card>
-
-      {selectedImage && !prediction && (
-        <View style={styles.analyzeButtonContainer}>
-          <CustomButton
-            title="Analyze Now"
-            icon="🔬"
-            onPress={analyzeSkin}
-            loading={loading}
-            size="large"
-            fullWidth
-          />
+          <Text style={styles.headerTitle}>Analysis Results</Text>
+          <View style={styles.headerSpacer} />
         </View>
-      )}
-
-      {loading && (
-        <Card style={styles.loadingCard}>
-          <Loading message="Analyzing image..." />
-        </Card>
-      )}
-
-      {prediction && (
-        <Card style={styles.resultCard}>
-          <View
-            style={[
-              styles.resultHeader,
-              { backgroundColor: getConditionColor(prediction.predicted_label) },
-            ]}
-          >
-            <Text style={styles.resultLabel}>
-              {prediction.predicted_label.replace(/_/g, " ")}
-            </Text>
-          </View>
-          <View style={styles.resultBody}>
-            <View style={styles.confidenceRow}>
-              <Text style={styles.confidenceLabel}>Confidence Score:</Text>
-              <Text style={styles.confidenceValue}>
-                {(prediction.confidence_score * 100).toFixed(1)}%
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Result Card */}
+          <View style={styles.resultCard}>
+            <View
+              style={[
+                styles.resultHeader,
+                { backgroundColor: getConditionColor(prediction.predicted_label) },
+              ]}
+            >
+              <Text style={styles.resultLabel}>
+                {prediction.predicted_label.replace(/_/g, " ")}
               </Text>
             </View>
-            <View style={styles.progressBar}>
-              <View
-                style={[
-                  styles.progressFill,
-                  { width: `${prediction.confidence_score * 100}%` },
-                ]}
-              />
-            </View>
-            {lowConfidence && (
-              <View style={styles.warningBox}>
-                <Text style={styles.warningTitle}>Low confidence</Text>
-                <Text style={styles.warningText}>
-                  Confidence is below 60%. Please retake the photo with better lighting and ensure your face is centered.
+            <View style={styles.resultBody}>
+              <View style={styles.confidenceRow}>
+                <Text style={styles.confidenceLabel}>Confidence Score:</Text>
+                <Text style={styles.confidenceValue}>
+                  {(prediction.confidence_score * 100).toFixed(1)}%
                 </Text>
               </View>
-            )}
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Report ID</Text>
-              <Text style={styles.metaValue}>{createdPredictionId || "Pending"}</Text>
-            </View>
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Date</Text>
-              <Text style={styles.metaValue}>{formatDate(latestPrediction?.createdAt) || ""}</Text>
-            </View>
-            <Text style={styles.disclaimer}>
-              ⚠️ This is an AI-based prediction. Please consult a dermatologist for proper diagnosis
-              and treatment.
-            </Text>
-            <CustomButton
-              title="Request Expert Review"
-              icon="👨‍⚕️"
-              onPress={() => {
-                if (createdPredictionId) {
-                  navigation.navigate('SelectDermatologist', { predictionId: createdPredictionId });
-                } else {
-                  Alert.alert('Prediction Not Found', 'We could not locate this prediction. Please go to History and request a review from there.', [
-                    { text: 'Go to History', onPress: () => navigation.navigate('History') },
-                    { text: 'Cancel', style: 'cancel' },
-                  ]);
-                }
-              }}
-              size="large"
-              fullWidth
-            />
-            <CustomButton
-              title="Analyze Another"
-              onPress={() => {
-                setSelectedImage(null);
-                setPrediction(null);
-                setCreatedPredictionId(null);
-              }}
-              variant="ghost"
-              size="medium"
-              fullWidth
-              style={styles.resetButton}
-            />
-          </View>
-        </Card>
-      )}
+              <View style={styles.progressBar}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${prediction.confidence_score * 100}%` },
+                  ]}
+                />
+              </View>
 
-      <Card style={styles.infoCard} key="tips">
-        <Text style={styles.infoTitle}>Tips for Best Results</Text>
-        <Text style={styles.infoItem}>• Ensure good lighting</Text>
-        <Text style={styles.infoItem}>• Face should be clearly visible</Text>
-        <Text style={styles.infoItem}>• Avoid blurry images</Text>
-        <Text style={styles.infoItem}>• Remove glasses if possible</Text>
-      </Card>
-    </ScreenContainer>
+              {lowConfidence && (
+                <View style={styles.warningBox}>
+                  <Text style={styles.warningTitle}>⚠️ Low Confidence</Text>
+                  <Text style={styles.warningText}>
+                    Confidence is below 60%. Please retake the photo with better lighting
+                    and ensure your face is centered.
+                  </Text>
+                </View>
+              )}
+
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>Report ID</Text>
+                <Text style={styles.metaValue}>{createdPredictionId || "Pending"}</Text>
+              </View>
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>Date</Text>
+                <Text style={styles.metaValue}>
+                  {formatDate(latestPrediction?.createdAt) || "Just now"}
+                </Text>
+              </View>
+
+              <Text style={styles.disclaimer}>
+                ⚠️ This is an AI-based prediction. Please consult a dermatologist for
+                proper diagnosis and treatment.
+              </Text>
+
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={() => {
+                  if (createdPredictionId) {
+                    navigation.navigate("SelectDermatologist", {
+                      predictionId: createdPredictionId,
+                    });
+                  } else {
+                    Alert.alert(
+                      "Prediction Not Found",
+                      "We could not locate this prediction. Please go to History and request a review from there.",
+                      [
+                        {
+                          text: "Go to History",
+                          onPress: () => navigation.navigate("History"),
+                        },
+                        { text: "Cancel", style: "cancel" },
+                      ]
+                    );
+                  }
+                }}
+              >
+                <Text style={styles.primaryButtonText}>👨‍⚕️ Request Expert Review</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={() => {
+                  setSelectedImage(null);
+                  setPrediction(null);
+                  setCreatedPredictionId(null);
+                }}
+              >
+                <Text style={styles.secondaryButtonText}>Analyze Another</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // Main upload view
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Text style={styles.backArrow}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>New Analysis</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Title Section */}
+        <View style={styles.titleSection}>
+          <View style={styles.avatarIcon}>
+            <Text style={styles.avatarEmoji}>👤</Text>
+          </View>
+          <Text style={styles.pageTitle}>Upload Facial Photo</Text>
+          <Text style={styles.pageSubtitle}>
+            For accurate AI diagnosis, please follow the guidelines below.
+          </Text>
+        </View>
+
+        {/* Upload Area */}
+        <TouchableOpacity
+          style={styles.uploadCard}
+          onPress={pickImage}
+          activeOpacity={0.7}
+          delayPressIn={0}
+        >
+          {!selectedImage ? (
+            <View style={styles.uploadArea} pointerEvents="none">
+              <View style={styles.cameraIconContainer}>
+                <Text style={styles.cameraIcon}>📷</Text>
+              </View>
+              <Text style={styles.uploadTitle}>Tap to Upload</Text>
+              <Text style={styles.uploadSubtitle}>
+                Take a new photo or select from your gallery
+              </Text>
+              <View style={styles.securityBadge}>
+                <Text style={styles.securityIcon}>🔒</Text>
+                <Text style={styles.securityText}>Encrypted & Secure</Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.previewContainer}>
+              <Image source={{ uri: selectedImage }} style={styles.previewImage} />
+              <TouchableOpacity style={styles.changeImageButton} onPress={pickImage}>
+                <Text style={styles.changeImageText}>🔄 Change Image</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {/* Photo Guidelines */}
+        <View style={styles.guidelinesSection}>
+          <Text style={styles.guidelinesTitle}>Photo Guidelines</Text>
+
+          <View style={styles.guidelineItem}>
+            <View style={styles.guidelineIconContainer}>
+              <Text style={styles.guidelineIcon}>💡</Text>
+            </View>
+            <View style={styles.guidelineContent}>
+              <Text style={styles.guidelineItemTitle}>Good Lighting</Text>
+              <Text style={styles.guidelineItemText}>
+                Ensure your face is evenly lit. Avoid strong shadows or dark rooms.
+              </Text>
+            </View>
+            <View style={styles.guidelineCheck}>
+              <Text style={styles.checkIcon}>○</Text>
+            </View>
+          </View>
+
+          <View style={styles.guidelineItem}>
+            <View style={styles.guidelineIconContainer}>
+              <Text style={styles.guidelineIcon}>👓</Text>
+            </View>
+            <View style={styles.guidelineContent}>
+              <Text style={styles.guidelineItemTitle}>Remove Accessories</Text>
+              <Text style={styles.guidelineItemText}>
+                Please remove glasses, masks, or heavy makeup for best results.
+              </Text>
+            </View>
+            <View style={styles.guidelineCheck}>
+              <Text style={styles.checkIcon}>○</Text>
+            </View>
+          </View>
+
+          <View style={styles.guidelineItem}>
+            <View style={styles.guidelineIconContainer}>
+              <Text style={styles.guidelineIcon}>😐</Text>
+            </View>
+            <View style={styles.guidelineContent}>
+              <Text style={styles.guidelineItemTitle}>Neutral Expression</Text>
+              <Text style={styles.guidelineItemText}>
+                Keep a neutral expression with your face centered in the frame.
+              </Text>
+            </View>
+            <View style={styles.guidelineCheck}>
+              <Text style={styles.checkIcon}>○</Text>
+            </View>
+          </View>
+
+          <View style={styles.guidelineItem}>
+            <View style={styles.guidelineIconContainer}>
+              <Text style={styles.guidelineIcon}>📸</Text>
+            </View>
+            <View style={styles.guidelineContent}>
+              <Text style={styles.guidelineItemTitle}>Clear & Sharp</Text>
+              <Text style={styles.guidelineItemText}>
+                Avoid blurry images. Hold your device steady when taking the photo.
+              </Text>
+            </View>
+            <View style={styles.guidelineCheck}>
+              <Text style={styles.checkIcon}>○</Text>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Bottom Analyze Button */}
+      <View style={styles.bottomButton}>
+        <TouchableOpacity
+          style={[
+            styles.analyzeButton,
+            !selectedImage && styles.analyzeButtonDisabled,
+          ]}
+          onPress={analyzeSkin}
+          disabled={!selectedImage || loading}
+        >
+          {loading ? (
+            <Text style={styles.analyzeButtonText}>Analyzing...</Text>
+          ) : (
+            <>
+              <Text style={styles.analyzeButtonText}>Analyze Skin</Text>
+              <Text style={styles.analyzeButtonIcon}>✨</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Loading Overlay */}
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingCard}>
+            <Loading message="Analyzing your skin..." />
+          </View>
+        </View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    padding: spacing.lg,
-    backgroundColor: colors.white,
-    ...shadows.small,
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 50,
+    paddingBottom: 16,
+    backgroundColor: COLORS.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
   backButton: {
-    padding: spacing.sm,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.background,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  backText: {
-    ...typography.body,
-    color: colors.primary,
+  backArrow: {
+    fontSize: 28,
+    color: COLORS.text,
+    fontWeight: "300",
+    marginTop: -2,
+  },
+  headerTitle: {
+    fontSize: 17,
     fontWeight: "600",
+    color: COLORS.text,
   },
-  title: {
-    ...typography.h2,
-    color: colors.text,
+  headerSpacer: {
+    width: 40,
   },
-  spacer: {
-    width: 60,
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  titleSection: {
+    alignItems: "center",
+    paddingTop: 24,
+    paddingBottom: 20,
+  },
+  avatarIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.secondary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  avatarEmoji: {
+    fontSize: 24,
+  },
+  pageTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  pageSubtitle: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: "center",
+    lineHeight: 20,
   },
   uploadCard: {
-    margin: spacing.lg,
-    padding: 0,
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    marginBottom: 24,
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   uploadArea: {
-    padding: spacing.xxl,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    borderStyle: "dashed",
+    borderRadius: 14,
+    margin: 12,
+    padding: 32,
+    alignItems: "center",
+    backgroundColor: COLORS.background,
+  },
+  cameraIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.secondary,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 320,
-    backgroundColor: colors.backgroundGray,
+    marginBottom: 16,
   },
-  uploadIconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: colors.primaryLight,
-    justifyContent: "center",
+  cameraIcon: {
+    fontSize: 28,
+  },
+  uploadTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: COLORS.text,
+    marginBottom: 6,
+  },
+  uploadSubtitle: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  securityBadge: {
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: spacing.lg,
+    backgroundColor: COLORS.secondary,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
-  uploadIcon: {
-    fontSize: 48,
+  securityIcon: {
+    fontSize: 14,
+    marginRight: 6,
   },
-  uploadText: {
-    ...typography.h3,
-    color: colors.text,
-    marginBottom: spacing.xs,
-    textAlign: "center",
+  securityText: {
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: "600",
   },
-  uploadSubtext: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    textAlign: "center",
+  previewContainer: {
+    position: "relative",
   },
   previewImage: {
     width: "100%",
-    height: 300,
+    height: 250,
     resizeMode: "cover",
   },
-  changeButton: {
-    margin: spacing.md,
+  changeImageButton: {
+    position: "absolute",
+    bottom: 16,
+    alignSelf: "center",
+    backgroundColor: "rgba(0,0,0,0.6)",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
   },
-  analyzeButtonContainer: {
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
+  changeImageText: {
+    color: COLORS.card,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  guidelinesSection: {
+    marginBottom: 100,
+  },
+  guidelinesTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: COLORS.text,
+    marginBottom: 16,
+  },
+  guidelineItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  guidelineIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.background,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+  guidelineIcon: {
+    fontSize: 20,
+  },
+  guidelineContent: {
+    flex: 1,
+  },
+  guidelineItemTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.text,
+    marginBottom: 2,
+  },
+  guidelineItemText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    lineHeight: 17,
+  },
+  guidelineCheck: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 10,
+  },
+  checkIcon: {
+    fontSize: 14,
+    color: COLORS.primary,
+  },
+  bottomButton: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.card,
+    padding: 16,
+    paddingBottom: 30,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  analyzeButton: {
+    flexDirection: "row",
+    backgroundColor: COLORS.primary,
+    borderRadius: 28,
+    height: 56,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  analyzeButtonDisabled: {
+    opacity: 0.5,
+  },
+  analyzeButtonText: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: COLORS.card,
+    marginRight: 8,
+  },
+  analyzeButtonIcon: {
+    fontSize: 18,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   loadingCard: {
-    margin: spacing.lg,
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 32,
+    alignItems: "center",
   },
+  // Results styles
   resultCard: {
-    margin: spacing.lg,
-    padding: 0,
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    marginTop: 20,
+    marginBottom: 30,
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   resultHeader: {
-    padding: spacing.lg,
+    padding: 24,
     alignItems: "center",
   },
   resultLabel: {
-    ...typography.h1,
-    color: colors.white,
+    fontSize: 26,
+    fontWeight: "700",
+    color: COLORS.card,
     textAlign: "center",
   },
   resultBody: {
-    padding: spacing.lg,
+    padding: 20,
   },
   confidenceRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: spacing.sm,
+    marginBottom: 10,
   },
   confidenceLabel: {
-    ...typography.body,
-    color: colors.text,
+    fontSize: 15,
+    color: COLORS.text,
     fontWeight: "600",
   },
   confidenceValue: {
-    ...typography.h2,
-    color: colors.primary,
+    fontSize: 22,
+    color: COLORS.primary,
+    fontWeight: "700",
   },
   progressBar: {
     height: 8,
-    backgroundColor: colors.borderLight,
-    borderRadius: borderRadius.full,
+    backgroundColor: COLORS.border,
+    borderRadius: 4,
     overflow: "hidden",
-    marginBottom: spacing.lg,
+    marginBottom: 20,
   },
   progressFill: {
     height: "100%",
-    backgroundColor: colors.primary,
+    backgroundColor: COLORS.primary,
+    borderRadius: 4,
   },
   warningBox: {
     backgroundColor: "#FFF8E6",
-    borderRadius: borderRadius.sm,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
   },
   warningTitle: {
-    ...typography.body,
+    fontSize: 15,
     fontWeight: "700",
-    color: colors.warning || "#C47F00",
-    marginBottom: spacing.xs,
+    color: COLORS.warning,
+    marginBottom: 6,
   },
   warningText: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    lineHeight: 18,
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    lineHeight: 19,
   },
   metaRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: spacing.xs,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
   metaLabel: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
+    fontSize: 14,
+    color: COLORS.textSecondary,
   },
   metaValue: {
-    ...typography.bodySmall,
-    color: colors.text,
+    fontSize: 14,
+    color: COLORS.text,
     fontWeight: "600",
   },
   disclaimer: {
-    ...typography.caption,
-    color: colors.warning,
-    marginBottom: spacing.lg,
+    fontSize: 12,
+    color: COLORS.warning,
     fontWeight: "600",
+    marginTop: 16,
+    marginBottom: 20,
+    lineHeight: 18,
   },
-  resetButton: {
-    marginTop: spacing.md,
+  primaryButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 28,
+    height: 52,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
   },
-  infoCard: {
-    margin: spacing.lg,
-    marginTop: 0,
+  primaryButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.card,
   },
-  infoTitle: {
-    ...typography.h3,
-    color: colors.text,
-    marginBottom: spacing.md,
+  secondaryButton: {
+    backgroundColor: COLORS.background,
+    borderRadius: 28,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  infoItem: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
+  secondaryButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.textSecondary,
+  },
+  // Restricted view
+  restrictedCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 32,
+    alignItems: "center",
+    marginTop: 40,
+  },
+  restrictedIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  restrictedTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: COLORS.text,
+    marginBottom: 10,
+  },
+  restrictedText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: "center",
+    lineHeight: 22,
   },
 });
