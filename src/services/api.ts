@@ -1,7 +1,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const LOCAL_IP = '192.168.100.8'
+const LOCAL_IP = '192.168.1.103';
 // Update this based on your environment
 const BASE_URL = __DEV__ 
   ? `http://${LOCAL_IP}:5000`  // Android emulator
@@ -42,5 +42,10 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// API helper functions
+export const apiCheckUsername = async (username: string) => {
+  return api.get('/api/auth/check-username', { params: { username } });
+};
 
 export default api;
