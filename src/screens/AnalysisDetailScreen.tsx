@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, StatusBar, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, StatusBar, ActivityIndicator, Alert } from 'react-native';
 import { predictionService, Prediction } from '../services/predictionService'
 import { reviewService, ReviewRequest } from '../services/reviewService';
 import { treatmentService, TreatmentSuggestion } from '../services/treatmentService';
+import { reportService } from '../services/reportService';
+import { authService } from '../services/authService';
 import Loading from '../components/Loading';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors, spacing, shadows } from '../styles/theme';
@@ -14,9 +16,18 @@ export default function AnalysisDetailScreen({ route, navigation }: any) {
   const [treatment, setTreatment] = useState<TreatmentSuggestion | null>(null);
   const [loadingTreatment, setLoadingTreatment] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [userName, setUserName] = useState<string>('');
 
   const load = async () => {
     setLoading(true);
+    
+    // Get user name
+    const user = await authService.getStoredUser();
+    if (user?.username) {
+      setUserName(user.username);
+    }
     
     // Load review request if requestId is provided
     if (requestId) {
@@ -104,6 +115,61 @@ export default function AnalysisDetailScreen({ route, navigation }: any) {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestId, predictionId]);
+
+  const handleDownload = async () => {
+    if (!prediction) return;
+    
+    setDownloading(true);
+    try {
+      const result = await reportService.downloadReport({
+        prediction,
+        reviewRequest,
+        treatment,
+        userName,
+      });
+      
+      if (result.success) {
+        // Extract just the filename for cleaner message
+        const fileName = result.filePath?.split('/').pop() || 'Report';
+        Alert.alert(
+          'Download Complete ✓',
+          `Report saved successfully!\n\nFile: ${fileName}\n\nYou can find it in your Downloads folder using any file manager app.`,
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Download Failed', result.error || 'Failed to download report');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to download report');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!prediction) return;
+    
+    setSharing(true);
+    try {
+      const result = await reportService.shareReport({
+        prediction,
+        reviewRequest,
+        treatment,
+        userName,
+      });
+      
+      if (!result.success && result.error) {
+        Alert.alert('Share Failed', result.error);
+      }
+    } catch (error: any) {
+      // Ignore user cancellation
+      if (!error.message?.includes('User did not share')) {
+        Alert.alert('Error', error.message || 'Failed to share report');
+      }
+    } finally {
+      setSharing(false);
+    }
+  };
 
   if (loading) return <Loading fullScreen message="Loading details..." />;
   
@@ -336,13 +402,29 @@ export default function AnalysisDetailScreen({ route, navigation }: any) {
 
       {/* Bottom Action Buttons */}
       <View style={styles.bottomActions}>
-        <TouchableOpacity style={styles.shareButton}>
-          <Icon name="share-social-outline" size={20} color="#10B981" />
-          <Text style={styles.shareButtonText}>Share</Text>
+        <TouchableOpacity 
+          style={[styles.shareButton, sharing && styles.buttonDisabled]} 
+          onPress={handleShare}
+          disabled={sharing || !prediction}
+        >
+          {sharing ? (
+            <ActivityIndicator size="small" color="#10B981" />
+          ) : (
+            <Icon name="share-social-outline" size={20} color="#10B981" />
+          )}
+          <Text style={styles.shareButtonText}>{sharing ? 'Sharing...' : 'Share'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.downloadButton}>
-          <Icon name="download-outline" size={20} color={colors.white} />
-          <Text style={styles.downloadButtonText}>Download Report</Text>
+        <TouchableOpacity 
+          style={[styles.downloadButton, downloading && styles.buttonDisabled]}
+          onPress={handleDownload}
+          disabled={downloading || !prediction}
+        >
+          {downloading ? (
+            <ActivityIndicator size="small" color={colors.white} />
+          ) : (
+            <Icon name="download-outline" size={20} color={colors.white} />
+          )}
+          <Text style={styles.downloadButtonText}>{downloading ? 'Downloading...' : 'Download Report'}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -607,6 +689,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.white,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
 
   // Bottom Spacer

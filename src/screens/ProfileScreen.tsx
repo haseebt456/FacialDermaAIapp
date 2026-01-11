@@ -5,19 +5,43 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
+  ScrollView,
+  Image,
+  StatusBar,
 } from "react-native";
 import { authService } from "../services/authService";
-import Card from "../components/Card";
-import ScreenContainer from "../components/ScreenContainer";
-import CustomButton from "../components/CustomButton";
-import { colors, spacing, typography, shadows } from "../styles/theme";
+import Icon from "react-native-vector-icons/Ionicons";
+import { colors, spacing, shadows } from "../styles/theme";
+
+interface User {
+  id?: string;
+  username?: string;
+  email?: string;
+  role?: string;
+  name?: string;
+  profileImage?: string;
+  isVerified?: boolean;
+  // Patient fields
+  gender?: string;
+  age?: number;
+  phone?: string;
+  // Dermatologist fields
+  specialization?: string;
+  clinic?: string;
+}
 
 export default function ProfileScreen({ navigation }: any) {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     loadUser();
-  }, []);
+    
+    // Reload user when screen is focused
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadUser();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const loadUser = async () => {
     const result = await authService.getCurrentUser();
@@ -40,108 +64,141 @@ export default function ProfileScreen({ navigation }: any) {
           style: "destructive",
           onPress: async () => {
             await authService.logout();
-            // The AppNavigator will automatically switch to Auth stack when it detects no token
           },
         },
       ]
     );
   };
 
+  const MenuItem = ({ 
+    icon, 
+    label, 
+    onPress, 
+    iconColor = "#6B7280" 
+  }: { 
+    icon: string; 
+    label: string; 
+    onPress: () => void;
+    iconColor?: string;
+  }) => (
+    <TouchableOpacity style={styles.menuItem} onPress={onPress}>
+      <View style={styles.menuItemLeft}>
+        <View style={[styles.menuIconContainer, { backgroundColor: `${iconColor}15` }]}>
+          <Icon name={icon} size={20} color={iconColor} />
+        </View>
+        <Text style={styles.menuItemText}>{label}</Text>
+      </View>
+      <Icon name="chevron-forward" size={20} color="#D1D5DB" />
+    </TouchableOpacity>
+  );
+
+  const displayName = user?.name || user?.username || "User";
+  const displayEmail = user?.email || "";
+
   return (
-    <ScreenContainer
-      backgroundColor={colors.backgroundGray}
-      withKeyboardAvoid={false}
-    >
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.backgroundGray} />
+      
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backText}>← Back</Text>
+          <Icon name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>Profile</Text>
-        <View style={styles.spacer} />
+        <Text style={styles.headerTitle}>My Profile</Text>
+        <View style={styles.headerSpacer} />
       </View>
 
-      <View style={styles.avatarContainer}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {user?.username?.charAt(0).toUpperCase() || "U"}
-          </Text>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Profile Avatar Section */}
+        <View style={styles.avatarSection}>
+          <View style={styles.avatarContainer}>
+            {user?.profileImage ? (
+              <Image source={{ uri: user.profileImage }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarText}>
+                  {displayName.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <TouchableOpacity 
+              style={styles.cameraButton}
+              onPress={() => navigation.navigate('EditProfile')}
+            >
+              <Icon name="camera" size={14} color={colors.white} />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.userName}>{displayName}</Text>
+          <Text style={styles.userEmail}>{displayEmail}</Text>
         </View>
-        <Text style={styles.username}>{user?.username || "User"}</Text>
-        <Text style={styles.role}>
-          {user?.role === 'dermatologist' ? 'Dermatologist' : 'Patient'}
-        </Text>
-      </View>
 
-      <Card style={styles.infoCard}>
-        <Text style={styles.sectionTitle}>Account Information</Text>
-        
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Username</Text>
-          <Text style={styles.infoValue}>{user?.username || "-"}</Text>
+        {/* Account Section */}
+        <View style={styles.menuSection}>
+          <Text style={styles.sectionLabel}>ACCOUNT</Text>
+          <View style={styles.menuCard}>
+            <MenuItem
+              icon="person-outline"
+              label="Personal Information"
+              onPress={() => navigation.navigate('EditProfile')}
+              iconColor="#10B981"
+            />
+            <View style={styles.menuDivider} />
+            <MenuItem
+              icon="lock-closed-outline"
+              label="Security & Password"
+              onPress={() => navigation.navigate('ChangePassword')}
+              iconColor="#10B981"
+            />
+          </View>
         </View>
 
-        <View style={styles.divider} />
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Email</Text>
-          <Text style={styles.infoValue}>{user?.email || "-"}</Text>
+        {/* Preferences Section */}
+        <View style={styles.menuSection}>
+          <Text style={styles.sectionLabel}>PREFERENCES</Text>
+          <View style={styles.menuCard}>
+            <MenuItem
+              icon="notifications-outline"
+              label="Notifications"
+              onPress={() => navigation.navigate('Notifications')}
+              iconColor="#6B7280"
+            />
+          </View>
         </View>
 
-        <View style={styles.divider} />
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Role</Text>
-          <Text style={styles.infoValue}>
-            {user?.role === 'dermatologist' ? 'Dermatologist' : 'Patient'}
-          </Text>
+        {/* Support Section */}
+        <View style={styles.menuSection}>
+          <Text style={styles.sectionLabel}>SUPPORT</Text>
+          <View style={styles.menuCard}>
+            <MenuItem
+              icon="help-circle-outline"
+              label="Help & FAQ"
+              onPress={() => Alert.alert('Help & FAQ', 'Contact support@facialdermaai.com for assistance.')}
+              iconColor="#6B7280"
+            />
+            <View style={styles.menuDivider} />
+            <MenuItem
+              icon="shield-checkmark-outline"
+              label="Privacy Policy"
+              onPress={() => Alert.alert('Privacy Policy', 'Your data is securely stored and never shared with third parties without consent.')}
+              iconColor="#6B7280"
+            />
+          </View>
         </View>
-      </Card>
 
-      <Card style={styles.menuCard}>
-        <Text style={styles.sectionTitle}>Settings</Text>
-
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => navigation.navigate('EditProfile')}
-        >
-          <Text style={styles.menuText}>✏️ Edit Profile</Text>
-          <Text style={styles.menuArrow}>›</Text>
+        {/* Logout Button */}
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Icon name="log-out-outline" size={20} color="#EF4444" />
+          <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
 
-        <View style={styles.divider} />
-
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => navigation.navigate('ChangePassword')}
-        >
-          <Text style={styles.menuText}>🔑 Change Password</Text>
-          <Text style={styles.menuArrow}>›</Text>
-        </TouchableOpacity>
-
-        <View style={styles.divider} />
-
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => navigation.navigate('Notifications')}
-        >
-          <Text style={styles.menuText}>🔔 Notifications</Text>
-          <Text style={styles.menuArrow}>›</Text>
-        </TouchableOpacity>
-      </Card>
-
-      <View style={styles.logoutContainer}>
-        <CustomButton
-          title="Logout"
-          icon="🚪"
-          onPress={handleLogout}
-          variant="danger"
-          size="large"
-          fullWidth
-        />
-      </View>
-
-      <Text style={styles.version}>Version 1.0.0</Text>
-    </ScreenContainer>
+        {/* Version */}
+        <Text style={styles.versionText}>Version 1.2.0</Text>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -154,108 +211,157 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: spacing.lg,
-    backgroundColor: colors.white,
-    ...shadows.small,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl + 10,
+    paddingBottom: spacing.md,
+    backgroundColor: colors.backgroundGray,
   },
   backButton: {
-    padding: spacing.sm,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  backText: {
-    ...typography.body,
-    color: colors.primary,
-    fontWeight: "600",
-  },
-  title: {
-    ...typography.h2,
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "700",
     color: colors.text,
   },
-  spacer: {
-    width: 60,
+  headerSpacer: {
+    width: 40,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 100,
+  },
+
+  // Avatar Section
+  avatarSection: {
+    alignItems: "center",
+    paddingVertical: spacing.xl,
   },
   avatarContainer: {
-    alignItems: "center",
-    padding: spacing.xl,
-    backgroundColor: colors.white,
+    position: "relative",
+    marginBottom: spacing.md,
   },
-  avatar: {
+  avatarImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: colors.primary,
+    backgroundColor: "#E5E7EB",
+  },
+  avatarPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#D1FAE5",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: spacing.md,
+    borderWidth: 3,
+    borderColor: "#10B981",
   },
   avatarText: {
-    ...typography.h1,
-    color: colors.white,
     fontSize: 40,
+    fontWeight: "700",
+    color: "#10B981",
   },
-  username: {
-    ...typography.h2,
+  cameraButton: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#10B981",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: colors.backgroundGray,
+  },
+  userName: {
+    fontSize: 20,
+    fontWeight: "700",
     color: colors.text,
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
-  role: {
-    ...typography.body,
-    color: colors.textSecondary,
+  userEmail: {
+    fontSize: 14,
+    color: "#9CA3AF",
   },
-  infoCard: {
-    margin: spacing.lg,
-    marginBottom: spacing.md,
+
+  // Menu Section
+  menuSection: {
+    marginBottom: spacing.lg,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#9CA3AF",
+    letterSpacing: 0.5,
+    marginBottom: spacing.sm,
+    marginLeft: spacing.xs,
   },
   menuCard: {
-    margin: spacing.lg,
-    marginTop: 0,
-  },
-  sectionTitle: {
-    ...typography.h3,
-    color: colors.text,
-    marginBottom: spacing.md,
-  },
-  infoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: spacing.sm,
-  },
-  infoLabel: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-  infoValue: {
-    ...typography.body,
-    color: colors.text,
-    fontWeight: "600",
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.borderLight,
-    marginVertical: spacing.xs,
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    ...shadows.small,
   },
   menuItem: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
   },
-  menuText: {
-    ...typography.body,
+  menuItemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  menuIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  menuItemText: {
+    fontSize: 15,
+    fontWeight: "500",
     color: colors.text,
   },
-  menuArrow: {
-    ...typography.h2,
-    color: colors.textLight,
+  menuDivider: {
+    height: 1,
+    backgroundColor: "#F3F4F6",
+    marginLeft: 68,
   },
-  logoutContainer: {
-    paddingHorizontal: spacing.lg,
-    marginVertical: spacing.md,
+
+  // Logout Button
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FEF2F2",
+    borderRadius: 12,
+    paddingVertical: spacing.md,
+    marginTop: spacing.md,
+    gap: spacing.sm,
   },
-  version: {
-    ...typography.caption,
-    color: colors.textLight,
+  logoutText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#EF4444",
+  },
+
+  // Version
+  versionText: {
+    fontSize: 12,
+    color: "#D1D5DB",
     textAlign: "center",
-    marginBottom: spacing.xl,
+    marginTop: spacing.lg,
   },
 });
