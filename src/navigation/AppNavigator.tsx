@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import AuthStack from "./AuthStack";
@@ -13,6 +13,7 @@ export default function AppNavigator() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isNavigationReady, setIsNavigationReady] = useState(false);
   const navigationRef = useRef<any>(null);
 
   useEffect(() => {
@@ -28,17 +29,6 @@ export default function AppNavigator() {
         const user = JSON.parse(userJson);
         setUserRole(user.role);
         setIsLoggedIn(true);
-        
-        // Navigate to appropriate home screen based on role
-        setTimeout(() => {
-          if (navigationRef.current) {
-            if (user.role === 'dermatologist') {
-              navigationRef.current.navigate('Main', { screen: 'DermatologistHome' });
-            } else {
-              navigationRef.current.navigate('Main', { screen: 'Home' });
-            }
-          }
-        }, 100);
       }
     } catch (error) {
       console.error("Error checking login status:", error);
@@ -46,6 +36,11 @@ export default function AppNavigator() {
       setIsLoading(false);
     }
   };
+
+  // Navigate to appropriate screen after navigation is ready
+  const onNavigationReady = useCallback(() => {
+    setIsNavigationReady(true);
+  }, []);
 
   // Listen for auth state changes
   useEffect(() => {
@@ -71,7 +66,7 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} onReady={onNavigationReady}>
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
         {isLoggedIn ? (
           <RootStack.Screen name="Main" component={MainStack} />
