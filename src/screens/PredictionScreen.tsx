@@ -9,15 +9,14 @@ import {
   PermissionsAndroid,
   Platform,
   ScrollView,
-  Dimensions,
   InteractionManager,
+  ActivityIndicator,
 } from "react-native";
 import { launchCamera, launchImageLibrary } from "react-native-image-picker";
 import { predictionService, Prediction } from "../services/predictionService";
 import { authService } from "../services/authService";
+import { treatmentService, TreatmentSuggestion } from "../services/treatmentService";
 import Loading from "../components/Loading";
-
-const { width } = Dimensions.get("window");
 
 // Colors matching the design
 const COLORS = {
@@ -43,28 +42,41 @@ export default function PredictionScreen({ navigation }: any) {
   const [createdPredictionId, setCreatedPredictionId] = useState<string | null>(null);
   const [latestPrediction, setLatestPrediction] = useState<Prediction | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [isNavigationReady, setIsNavigationReady] = useState(false);
+  const [treatment, setTreatment] = useState<TreatmentSuggestion | null>(null);
+  const [loadingTreatment, setLoadingTreatment] = useState(false);
+
+  // Wait for navigation to be ready
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      setIsNavigationReady(true);
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   // Check user role and redirect dermatologists
   useEffect(() => {
     const checkRole = async () => {
       const user = await authService.getStoredUser();
       setUserRole(user?.role || null);
-
-      if (user?.role === "dermatologist") {
-        // Wait for interactions to complete before showing alert
-        InteractionManager.runAfterInteractions(() => {
-          setTimeout(() => {
-            Alert.alert(
-              "Access Restricted",
-              "Analysis feature is only available for patients. Dermatologists can review patient analyses from the Reviews section.",
-              [{ text: "OK", onPress: () => navigation.goBack() }]
-            );
-          }, 100);
-        });
-      }
     };
     checkRole();
-  }, [navigation]);
+  }, []);
+
+  // Show alert and navigate back for dermatologists (only when navigation is ready)
+  useEffect(() => {
+    if (userRole === "dermatologist" && isNavigationReady) {
+      InteractionManager.runAfterInteractions(() => {
+        setTimeout(() => {
+          Alert.alert(
+            "Access Restricted",
+            "Analysis feature is only available for patients. Dermatologists can review patient analyses from the Reviews section.",
+            [{ text: "OK", onPress: () => navigation.goBack() }]
+          );
+        }, 300);
+      });
+    }
+  }, [userRole, isNavigationReady, navigation]);
 
   const validateAsset = (asset: {
     uri?: string | null;
@@ -178,6 +190,10 @@ export default function PredictionScreen({ navigation }: any) {
 
     if (result.success && result.data) {
       setPrediction(result.data);
+      
+      // Fetch treatment recommendations
+      fetchTreatment(result.data.predicted_label);
+      
       Alert.alert(
         "Analysis Complete",
         `Detected: ${result.data.predicted_label}\nConfidence: ${(
@@ -227,6 +243,40 @@ export default function PredictionScreen({ navigation }: any) {
   };
 
   const lowConfidence = prediction && prediction.confidence_score < 0.6;
+
+  const fetchTreatment = async (conditionName: string) => {
+    setLoadingTreatment(true);
+    try {
+      console.log('PredictionScreen: Fetching treatment for:', conditionName);
+      const res = await treatmentService.getTreatmentByName(conditionName);
+      console.log('PredictionScreen: Treatment response:', res);
+      if (res.success && res.data) {
+        setTreatment(res.data);
+      } else {
+        console.log('Treatment not found by name, trying to get all treatments...');
+        // Fallback: get all treatments and find matching one
+        const allRes = await treatmentService.getAllTreatments();
+        console.log('All treatments:', allRes);
+        if (allRes.success && allRes.data) {
+          const match = allRes.data.find((t: TreatmentSuggestion) => 
+            t.name.toLowerCase() === conditionName.toLowerCase() ||
+            t.name.toLowerCase().replace(/_/g, ' ') === conditionName.toLowerCase() ||
+            t.name.toLowerCase().replace(/\s+/g, '_') === conditionName.toLowerCase().replace(/\s+/g, '_')
+          );
+          if (match) {
+            console.log('Found matching treatment:', match);
+            setTreatment(match);
+          } else {
+            console.log('No matching treatment found in all treatments');
+          }
+        }
+      }
+    } catch (error) {
+      console.log('Error fetching treatment:', error);
+    } finally {
+      setLoadingTreatment(false);
+    }
+  };
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "";
@@ -362,12 +412,54 @@ export default function PredictionScreen({ navigation }: any) {
                   setSelectedImage(null);
                   setPrediction(null);
                   setCreatedPredictionId(null);
+                  setTreatment(null);
                 }}
               >
                 <Text style={styles.secondaryButtonText}>Analyze Another</Text>
               </TouchableOpacity>
             </View>
           </View>
+
+          {/* Treatment Recommendations Section */}
+          {loadingTreatment ? (
+            <View style={styles.treatmentLoading}>
+              <ActivityIndicator size="small" color={COLORS.primary} />
+              <Text style={styles.treatmentLoadingText}>Loading recommendations...</Text>
+            </View>
+          ) : treatment ? (
+            <View style={styles.treatmentSection}>
+              <View style={styles.treatmentHeader}>
+                <Text style={styles.treatmentIcon}>💊</Text>
+                <Text style={styles.treatmentTitle}>Treatment & Prevention</Text>
+              </View>
+
+              {/* Treatments */}
+              {treatment.treatments && treatment.treatments.length > 0 && (
+                <View style={styles.treatmentSubSection}>
+                  <Text style={styles.treatmentSubTitle}>✅ Treatments</Text>
+                  {treatment.treatments.map((item, index) => (
+                    <View key={index} style={styles.treatmentItem}>
+                      <Text style={styles.treatmentBullet}>•</Text>
+                      <Text style={styles.treatmentItemText}>{item}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Prevention */}
+              {treatment.prevention && treatment.prevention.length > 0 && (
+                <View style={styles.treatmentSubSection}>
+                  <Text style={styles.treatmentSubTitle}>🛡️ Prevention Tips</Text>
+                  {treatment.prevention.map((tip, index) => (
+                    <View key={index} style={styles.treatmentItem}>
+                      <Text style={styles.treatmentBullet}>•</Text>
+                      <Text style={styles.treatmentItemText}>{tip}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          ) : null}
         </ScrollView>
       </View>
     );
@@ -413,10 +505,6 @@ export default function PredictionScreen({ navigation }: any) {
               <Text style={styles.uploadSubtitle}>
                 Take a new photo or select from your gallery
               </Text>
-              <View style={styles.securityBadge}>
-                <Text style={styles.securityIcon}>🔒</Text>
-                <Text style={styles.securityText}>Encrypted & Secure</Text>
-              </View>
             </View>
           ) : (
             <View style={styles.previewContainer}>
@@ -537,7 +625,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingTop: 50,
+    paddingTop: 16,
     paddingBottom: 16,
     backgroundColor: COLORS.card,
     borderBottomWidth: 1,
@@ -643,23 +731,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 16,
   },
-  securityBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.secondary,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  securityIcon: {
-    fontSize: 14,
-    marginRight: 6,
-  },
-  securityText: {
-    fontSize: 13,
-    color: COLORS.primary,
-    fontWeight: "600",
-  },
   previewContainer: {
     position: "relative",
   },
@@ -746,12 +817,12 @@ const styles = StyleSheet.create({
   },
   bottomButton: {
     position: "absolute",
-    bottom: 0,
+    bottom: 80,
     left: 0,
     right: 0,
     backgroundColor: COLORS.card,
     padding: 16,
-    paddingBottom: 30,
+    paddingBottom: 20,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
   },
@@ -932,6 +1003,84 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textSecondary,
     textAlign: "center",
+    lineHeight: 22,
+  },
+  // Treatment Section
+  treatmentLoading: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 16,
+    marginBottom: 30,
+    gap: 10,
+  },
+  treatmentLoadingText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+  treatmentSection: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 16,
+    marginBottom: 30,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  treatmentHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  treatmentIcon: {
+    fontSize: 20,
+  },
+  treatmentTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.text,
+  },
+  treatmentDescription: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    lineHeight: 22,
+    marginBottom: 16,
+  },
+  treatmentSubSection: {
+    marginTop: 12,
+  },
+  treatmentSubTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.text,
+    marginBottom: 10,
+  },
+  treatmentItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 8,
+    paddingLeft: 4,
+  },
+  treatmentBullet: {
+    fontSize: 14,
+    color: COLORS.primary,
+    marginRight: 10,
+    marginTop: 1,
+  },
+  treatmentItemText: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.textSecondary,
     lineHeight: 22,
   },
 });
