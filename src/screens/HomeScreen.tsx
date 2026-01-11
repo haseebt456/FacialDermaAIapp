@@ -175,34 +175,6 @@ export default function HomeScreen({ navigation }: any) {
           </View>
         </TouchableOpacity>
 
-        {/* Quick Access */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Quick Access</Text>
-          <View style={styles.quickAccessRow}>
-            <TouchableOpacity
-              style={styles.quickAccessCard}
-              onPress={() => navigation.navigate("History")}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.quickAccessIcon, styles.historyIconBg]}>
-                <Icon name="time-outline" size={24} color="#3B82F6" />
-              </View>
-              <Text style={styles.quickAccessTitle}>History</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickAccessCard}
-              onPress={() => navigation.navigate("MyReviewRequests")}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.quickAccessIcon, styles.reportsIconBg]}>
-                <Icon name="document-text-outline" size={24} color="#D97706" />
-              </View>
-              <Text style={styles.quickAccessTitle}>Reports</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* Recent Analysis */}
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
@@ -438,33 +410,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
 
-  // Quick Access
-  quickAccessRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  quickAccessCard: {
-    flex: 1,
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    padding: spacing.lg,
-    alignItems: 'center',
-    ...shadows.small,
-  },
-  quickAccessIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  quickAccessTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-  },
-
   // Analysis List
   analysisListCard: {
     backgroundColor: colors.white,
@@ -581,14 +526,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: spacing.md,
-  },
-  
-  // Quick Access Icon Backgrounds
-  historyIconBg: {
-    backgroundColor: '#EFF6FF',
-  },
-  reportsIconBg: {
-    backgroundColor: '#FEF3C7',
   },
   
   // Bottom Spacer
