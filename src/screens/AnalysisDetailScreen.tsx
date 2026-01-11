@@ -17,7 +17,6 @@ export default function AnalysisDetailScreen({ route, navigation }: any) {
   const [loadingTreatment, setLoadingTreatment] = useState(false);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
-  const [sharing, setSharing] = useState(false);
   const [userName, setUserName] = useState<string>('');
 
   const load = async () => {
@@ -143,31 +142,6 @@ export default function AnalysisDetailScreen({ route, navigation }: any) {
       Alert.alert('Error', error.message || 'Failed to download report');
     } finally {
       setDownloading(false);
-    }
-  };
-
-  const handleShare = async () => {
-    if (!prediction) return;
-    
-    setSharing(true);
-    try {
-      const result = await reportService.shareReport({
-        prediction,
-        reviewRequest,
-        treatment,
-        userName,
-      });
-      
-      if (!result.success && result.error) {
-        Alert.alert('Share Failed', result.error);
-      }
-    } catch (error: any) {
-      // Ignore user cancellation
-      if (!error.message?.includes('User did not share')) {
-        Alert.alert('Error', error.message || 'Failed to share report');
-      }
-    } finally {
-      setSharing(false);
     }
   };
 
@@ -400,20 +374,8 @@ export default function AnalysisDetailScreen({ route, navigation }: any) {
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
-      {/* Bottom Action Buttons */}
+      {/* Bottom Action Button */}
       <View style={styles.bottomActions}>
-        <TouchableOpacity 
-          style={[styles.shareButton, sharing && styles.buttonDisabled]} 
-          onPress={handleShare}
-          disabled={sharing || !prediction}
-        >
-          {sharing ? (
-            <ActivityIndicator size="small" color="#10B981" />
-          ) : (
-            <Icon name="share-social-outline" size={20} color="#10B981" />
-          )}
-          <Text style={styles.shareButtonText}>{sharing ? 'Sharing...' : 'Share'}</Text>
-        </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.downloadButton, downloading && styles.buttonDisabled]}
           onPress={handleDownload}
@@ -658,25 +620,8 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     ...shadows.medium,
   },
-  shareButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.white,
-    borderWidth: 1.5,
-    borderColor: '#10B981',
-    borderRadius: 12,
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
-  },
-  shareButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#10B981',
-  },
   downloadButton: {
-    flex: 1.5,
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

@@ -2,9 +2,20 @@ import { generatePDF } from 'react-native-html-to-pdf';
 import Share from 'react-native-share';
 import RNFS from 'react-native-fs';
 import { Platform } from 'react-native';
+import notifee, { AndroidImportance } from '@notifee/react-native';
 import { Prediction } from './predictionService';
 import { ReviewRequest } from './reviewService';
 import { TreatmentSuggestion } from './treatmentService';
+
+// Create notification channel for downloads
+const createDownloadChannel = async () => {
+  await notifee.createChannel({
+    id: 'downloads',
+    name: 'Downloads',
+    importance: AndroidImportance.HIGH,
+    description: 'Notifications for file downloads',
+  });
+};
 
 interface ReportData {
   prediction: Prediction;
@@ -389,6 +400,24 @@ export const reportService = {
       const html = generateReportHTML(data);
       const fileName = `SkinAnalysis_Report_${data.prediction.id}.pdf`;
       
+      // Create notification channel
+      await createDownloadChannel();
+      
+      // Show "downloading" notification
+      const notificationId = await notifee.displayNotification({
+        id: 'download-progress',
+        title: 'Downloading Report',
+        body: 'Generating your skin analysis report...',
+        android: {
+          channelId: 'downloads',
+          smallIcon: 'ic_launcher', // Uses app launcher icon
+          ongoing: true,
+          progress: {
+            indeterminate: true,
+          },
+        },
+      });
+      
       // First generate PDF in app's document directory
       const options = {
         html,
@@ -424,11 +453,44 @@ export const reportService = {
         await RNFS.unlink(file.filePath);
         
         console.log('PDF saved to:', downloadPath);
+        
+        // Update notification to show completion
+        await notifee.displayNotification({
+          id: 'download-progress',
+          title: 'Download Complete ✓',
+          body: `${fileName} saved to Downloads`,
+          android: {
+            channelId: 'downloads',
+            smallIcon: 'ic_launcher',
+            ongoing: false,
+            autoCancel: true,
+          },
+        });
+        
         return { success: true, filePath: downloadPath };
       }
+      
+      // Cancel notification on failure
+      await notifee.cancelNotification('download-progress');
       return { success: false, error: 'Failed to generate PDF' };
     } catch (error: any) {
       console.error('Download error:', error);
+      // Show error notification
+      try {
+        await notifee.displayNotification({
+          id: 'download-progress',
+          title: 'Download Failed',
+          body: error.message || 'Failed to download report',
+          android: {
+            channelId: 'downloads',
+            smallIcon: 'ic_launcher',
+            ongoing: false,
+            autoCancel: true,
+          },
+        });
+      } catch (notifError) {
+        console.error('Notification error:', notifError);
+      }
       return { success: false, error: error.message || 'Failed to download report' };
     }
   },
@@ -436,19 +498,38 @@ export const reportService = {
   shareReport: async (data: ReportData): Promise<{ success: boolean; error?: string }> => {
     try {
       const result = await reportService.generatePDF(data);
+      console.log('PDF generated:', result);
+      
       if (result.success && result.filePath) {
+        // Verify file exists
+        const exists = await RNFS.exists(result.filePath);
+        console.log('File exists:', exists, 'at path:', result.filePath);
+        
+        if (!exists) {
+          return { success: false, error: 'PDF file not found' };
+        }
+
+        // Read file as base64
+        const base64 = await RNFS.readFile(result.filePath, 'base64');
+        
+        // Use react-native-share with base64
         await Share.open({
-          title: 'Skin Analysis Report',
-          message: `Skin Analysis Report for ${data.prediction.result.predicted_label.replace(/_/g, ' ')}`,
-          url: `file://${result.filePath}`,
+          url: `data:application/pdf;base64,${base64}`,
+          filename: `SkinAnalysis_Report_${data.prediction.id}.pdf`,
           type: 'application/pdf',
+          saveToFiles: true,
         });
+        
         return { success: true };
       }
-      return { success: false, error: result.error };
+      return { success: false, error: result.error || 'Failed to generate PDF' };
     } catch (error: any) {
-      // User cancelled sharing
-      if (error.message?.includes('User did not share')) {
+      console.log('Share error details:', JSON.stringify(error));
+      // User cancelled sharing - this is not an error
+      if (error.message?.includes('User did not share') || 
+          error.message?.includes('cancelled') ||
+          error.message?.includes('dismiss') ||
+          error.dismissedAction) {
         return { success: true };
       }
       console.error('Share error:', error);

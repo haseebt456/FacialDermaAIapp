@@ -20,7 +20,7 @@ export default function BottomNav({ navigationRef, userRole }: BottomNavProps) {
     if (key === 'Home') return currentRouteName === 'Home' || currentRouteName === 'DermatologistHome';
     if (key === 'Analysis') return ['History', 'AnalysisDetail'].includes(currentRouteName);
     if (key === 'Scan') return currentRouteName === 'Prediction';
-    if (key === 'Experts') return ['SelectDermatologist', 'MyReviewRequests', 'ReviewRequestDetail'].includes(currentRouteName);
+    if (key === 'Reviews') return ['MyReviewRequests', 'ReviewRequestDetail', 'SelectDermatologist'].includes(currentRouteName);
     if (key === 'Profile') return ['Profile', 'EditProfile', 'ChangePassword'].includes(currentRouteName);
     return false;
   };
@@ -73,10 +73,10 @@ export default function BottomNav({ navigationRef, userRole }: BottomNavProps) {
         {/* Spacer for center button */}
         <View style={styles.centerSpacer} />
 
-        {/* Experts */}
-        <TouchableOpacity style={styles.navItem} onPress={() => handlePress('SelectDermatologist')} activeOpacity={0.7}>
-          <Icon name="people-outline" size={24} color={getActive('Experts') ? '#22B8DC' : '#6B7280'} />
-          <Text style={[styles.navLabel, getActive('Experts') && styles.navLabelActive]}>Experts</Text>
+        {/* Reviews */}
+        <TouchableOpacity style={styles.navItem} onPress={() => handlePress('MyReviewRequests')} activeOpacity={0.7}>
+          <Icon name="document-text-outline" size={24} color={getActive('Reviews') ? '#22B8DC' : '#6B7280'} />
+          <Text style={[styles.navLabel, getActive('Reviews') && styles.navLabelActive]}>Reviews</Text>
         </TouchableOpacity>
 
         {/* Profile */}

@@ -231,22 +231,55 @@ export default function HomeScreen({ navigation }: any) {
           )}
         </View>
 
-        {/* Expert Review Card */}
-        <TouchableOpacity 
-          style={styles.expertCard}
-          onPress={() => navigation.navigate("SelectDermatologist")}
-          activeOpacity={0.8}
-        >
-          <View style={styles.expertContent}>
-            <Text style={styles.expertLabel}>Expert Review</Text>
-            <Text style={styles.expertDescription}>
-              Get a certified dermatologist to review your latest scan results.
-            </Text>
+        {/* Key Features Section */}
+        <View style={styles.featuresSection}>
+          <Text style={styles.sectionTitle}>Key Features</Text>
+          <View style={styles.featuresContainer}>
+            <View style={styles.featuresRow}>
+              <View style={styles.featureCard}>
+                <View style={[styles.featureIcon, { backgroundColor: '#D1FAE5' }]}>
+                  <Icon name="scan-outline" size={18} color="#10B981" />
+                </View>
+                <Text style={styles.featureTitle}>AI Diagnosis</Text>
+                <Text style={styles.featureDescription}>
+                  Instant detection of skin conditions with high accuracy.
+                </Text>
+              </View>
+              
+              <View style={styles.featureCard}>
+                <View style={[styles.featureIcon, { backgroundColor: '#FEF3C7' }]}>
+                  <Icon name="shield-checkmark-outline" size={18} color="#D97706" />
+                </View>
+                <Text style={styles.featureTitle}>Expert Review</Text>
+                <Text style={styles.featureDescription}>
+                  Certified dermatologists verify your results.
+                </Text>
+              </View>
+            </View>
+            
+            <View style={styles.featuresRow}>
+              <View style={styles.featureCard}>
+                <View style={[styles.featureIcon, { backgroundColor: '#D1FAE5' }]}>
+                  <Icon name="document-text-outline" size={18} color="#10B981" />
+                </View>
+                <Text style={styles.featureTitle}>Full Reports</Text>
+                <Text style={styles.featureDescription}>
+                  Download comprehensive PDF health reports.
+                </Text>
+              </View>
+              
+              <View style={styles.featureCard}>
+                <View style={[styles.featureIcon, { backgroundColor: '#FCE7F3' }]}>
+                  <Icon name="medkit-outline" size={18} color="#EC4899" />
+                </View>
+                <Text style={styles.featureTitle}>Treatment</Text>
+                <Text style={styles.featureDescription}>
+                  Get personalized care and routine suggestions.
+                </Text>
+              </View>
+            </View>
           </View>
-          <View style={styles.expertArrow}>
-            <Icon name="arrow-forward" size={20} color="#D97706" />
-          </View>
-        </TouchableOpacity>
+        </View>
 
         {/* Bottom spacing for nav bar */}
         <View style={styles.bottomSpacer} />
@@ -494,38 +527,45 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 
-  // Expert Card
-  expertCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FEF3C7',
-    marginHorizontal: spacing.lg,
+  // Key Features Section
+  featuresSection: {
     marginTop: spacing.xl,
+    paddingHorizontal: spacing.lg,
+  },
+  featuresContainer: {
+    backgroundColor: '#F3F4F6',
     borderRadius: 16,
-    padding: spacing.lg,
+    padding: spacing.sm,
   },
-  expertContent: {
+  featuresRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  featureCard: {
     flex: 1,
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: spacing.md,
   },
-  expertLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#D97706',
-    marginBottom: 4,
-  },
-  expertDescription: {
-    fontSize: 13,
-    color: '#92400E',
-    lineHeight: 18,
-  },
-  expertArrow: {
+  featureIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  featureTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  featureDescription: {
+    fontSize: 11,
+    color: '#6B7280',
+    lineHeight: 15,
   },
   
   // Bottom Spacer
