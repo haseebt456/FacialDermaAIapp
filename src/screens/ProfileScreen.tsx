@@ -30,6 +30,25 @@ interface User {
   clinic?: string;
 }
 
+interface MenuItemProps {
+  icon: string;
+  label: string;
+  onPress: () => void;
+  iconColor?: string;
+}
+
+const MenuItem = ({ icon, label, onPress, iconColor = "#6B7280" }: MenuItemProps) => (
+  <TouchableOpacity style={styles.menuItem} onPress={onPress}>
+    <View style={styles.menuItemLeft}>
+      <View style={[styles.menuIconContainer, { backgroundColor: `${iconColor}15` }]}>
+        <Icon name={icon} size={20} color={iconColor} />
+      </View>
+      <Text style={styles.menuItemText}>{label}</Text>
+    </View>
+    <Icon name="chevron-forward" size={20} color="#D1D5DB" />
+  </TouchableOpacity>
+);
+
 export default function ProfileScreen({ navigation }: any) {
   const [user, setUser] = useState<User | null>(null);
 
@@ -69,28 +88,6 @@ export default function ProfileScreen({ navigation }: any) {
       ]
     );
   };
-
-  const MenuItem = ({ 
-    icon, 
-    label, 
-    onPress, 
-    iconColor = "#6B7280" 
-  }: { 
-    icon: string; 
-    label: string; 
-    onPress: () => void;
-    iconColor?: string;
-  }) => (
-    <TouchableOpacity style={styles.menuItem} onPress={onPress}>
-      <View style={styles.menuItemLeft}>
-        <View style={[styles.menuIconContainer, { backgroundColor: `${iconColor}15` }]}>
-          <Icon name={icon} size={20} color={iconColor} />
-        </View>
-        <Text style={styles.menuItemText}>{label}</Text>
-      </View>
-      <Icon name="chevron-forward" size={20} color="#D1D5DB" />
-    </TouchableOpacity>
-  );
 
   const displayName = user?.name || user?.username || "User";
   const displayEmail = user?.email || "";

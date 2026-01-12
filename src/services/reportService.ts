@@ -404,7 +404,7 @@ export const reportService = {
       await createDownloadChannel();
       
       // Show "downloading" notification
-      const notificationId = await notifee.displayNotification({
+      await notifee.displayNotification({
         id: 'download-progress',
         title: 'Downloading Report',
         body: 'Generating your skin analysis report...',

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, TextInput, Image, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, TextInput, StatusBar } from 'react-native';
 import { reviewService, Dermatologist } from '../../services/reviewService';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors, spacing, shadows } from '../../styles/theme';

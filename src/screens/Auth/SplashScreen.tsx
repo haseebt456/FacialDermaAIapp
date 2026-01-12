@@ -65,7 +65,7 @@ const SplashScreen = () => {
   const navigation = useNavigation<any>();
 
   const handleGetStarted = () => {
-    navigation.navigate('Auth');
+    navigation.navigate('Login');
   };
 
   return (

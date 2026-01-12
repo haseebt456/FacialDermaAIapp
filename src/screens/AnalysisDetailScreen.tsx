@@ -232,11 +232,16 @@ export default function AnalysisDetailScreen({ route, navigation }: any) {
             <View style={styles.infoGrid}>
               <View style={styles.infoCard}>
                 <Text style={styles.infoLabel}>CONFIDENCE</Text>
-                <Text style={[styles.infoValue, { color: '#10B981' }]}>{confidencePercent}%</Text>
+                <Text style={[styles.infoValue, styles.infoValueGreen]}>{confidencePercent}%</Text>
               </View>
               <View style={styles.infoCard}>
                 <Text style={styles.infoLabel}>REVIEW STATUS</Text>
-                <Text style={[styles.infoValue, { color: reviewRequest ? (reviewRequest.status === 'reviewed' ? '#10B981' : '#F59E0B') : '#6B7280' }]}>
+                <Text style={[
+                  styles.infoValue, 
+                  reviewRequest 
+                    ? (reviewRequest.status === 'reviewed' ? styles.infoValueGreen : styles.infoValueYellow) 
+                    : styles.infoValueGray
+                ]}>
                   {reviewRequest ? (reviewRequest.status === 'reviewed' ? 'Reviewed' : 'Pending') : 'Not Reviewed'}
                 </Text>
               </View>
@@ -519,6 +524,15 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: colors.text,
+  },
+  infoValueGreen: {
+    color: '#10B981',
+  },
+  infoValueYellow: {
+    color: '#F59E0B',
+  },
+  infoValueGray: {
+    color: '#6B7280',
   },
 
   // Doctor Card

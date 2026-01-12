@@ -13,7 +13,7 @@ export default function AppNavigator() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isNavigationReady, setIsNavigationReady] = useState(false);
+  const [, setIsNavigationReady] = useState(false);
   const navigationRef = useRef<any>(null);
 
   useEffect(() => {

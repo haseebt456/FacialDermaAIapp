@@ -29,7 +29,7 @@ export default function EmailVerificationOTPScreen({ route, navigation }: any) {
 
     if (result.success) {
       Alert.alert("Success", "Email verified. You can now log in.", [
-        { text: "OK", onPress: () => navigation.navigate("Auth") },
+        { text: "OK", onPress: () => navigation.navigate("Login") },
       ]);
     } else {
       Alert.alert("Verification Failed", result.error);
@@ -96,7 +96,7 @@ export default function EmailVerificationOTPScreen({ route, navigation }: any) {
 
         <CustomButton
           title="Back to Login"
-          onPress={() => navigation.navigate("Auth")}
+          onPress={() => navigation.navigate("Login")}
           variant="ghost"
           fullWidth
         />

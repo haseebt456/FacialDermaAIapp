@@ -237,7 +237,7 @@ export default function HomeScreen({ navigation }: any) {
           <View style={styles.featuresContainer}>
             <View style={styles.featuresRow}>
               <View style={styles.featureCard}>
-                <View style={[styles.featureIcon, { backgroundColor: '#D1FAE5' }]}>
+                <View style={[styles.featureIcon, styles.featureIconGreen]}>
                   <Icon name="scan-outline" size={18} color="#10B981" />
                 </View>
                 <Text style={styles.featureTitle}>AI Diagnosis</Text>
@@ -247,7 +247,7 @@ export default function HomeScreen({ navigation }: any) {
               </View>
               
               <View style={styles.featureCard}>
-                <View style={[styles.featureIcon, { backgroundColor: '#FEF3C7' }]}>
+                <View style={[styles.featureIcon, styles.featureIconYellow]}>
                   <Icon name="shield-checkmark-outline" size={18} color="#D97706" />
                 </View>
                 <Text style={styles.featureTitle}>Expert Review</Text>
@@ -259,7 +259,7 @@ export default function HomeScreen({ navigation }: any) {
             
             <View style={styles.featuresRow}>
               <View style={styles.featureCard}>
-                <View style={[styles.featureIcon, { backgroundColor: '#D1FAE5' }]}>
+                <View style={[styles.featureIcon, styles.featureIconGreen]}>
                   <Icon name="document-text-outline" size={18} color="#10B981" />
                 </View>
                 <Text style={styles.featureTitle}>Full Reports</Text>
@@ -269,7 +269,7 @@ export default function HomeScreen({ navigation }: any) {
               </View>
               
               <View style={styles.featureCard}>
-                <View style={[styles.featureIcon, { backgroundColor: '#FCE7F3' }]}>
+                <View style={[styles.featureIcon, styles.featureIconPink]}>
                   <Icon name="medkit-outline" size={18} color="#EC4899" />
                 </View>
                 <Text style={styles.featureTitle}>Treatment</Text>
@@ -555,6 +555,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.sm,
+  },
+  featureIconGreen: {
+    backgroundColor: '#D1FAE5',
+  },
+  featureIconYellow: {
+    backgroundColor: '#FEF3C7',
+  },
+  featureIconPink: {
+    backgroundColor: '#FCE7F3',
   },
   featureTitle: {
     fontSize: 13,
